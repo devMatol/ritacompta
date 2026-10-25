@@ -35,6 +35,25 @@ Built for Rita's vintage archive ([@nuzhdina.ri](https://www.vinted.fr/member/68
   - Offline mode support for flea markets and trade shows via Service Worker and IndexedDB.
   - Responsive mobile burger navigation designed for single-hand mobile usage.
 
+- **Dynamic Real-Time Cloud Sync (Supabase + Vercel):**
+  - Shared cloud PostgreSQL database with live multi-device synchronization.
+  - Whatever Rita adds on her iPhone is instantly visible on your laptop and vice versa.
+  - Real-time WebSocket updates (`postgres_changes`) without page reloading.
+  - Schema file provided in `supabase_schema.sql` for instant setup.
+
+---
+
+## Cloud Database Setup (Supabase & Vercel)
+
+To enable live multi-device synchronization across all phones and computers:
+
+1. Create a free project on [Supabase](https://supabase.com).
+2. Go to **SQL Editor** in your Supabase dashboard and run the script in [`supabase_schema.sql`](./supabase_schema.sql).
+3. In your **Vercel Project Settings > Environment Variables**, add:
+   - `VITE_SUPABASE_URL` = your Supabase project URL (`https://xyz.supabase.co`)
+   - `VITE_SUPABASE_ANON_KEY` = your Supabase public anon key (`eyJ...`)
+4. Redeploy on Vercel (or click **"Connect Cloud DB"** directly inside the Kozha app to paste your credentials).
+
 ---
 
 ## Technical Stack

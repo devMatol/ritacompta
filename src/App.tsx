@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useLiveQuery } from 'dexie-react-hooks';
 import { db, initDatabase, loadRealVintedDressing } from './db';
 import { Item, Sale, VintedItem } from './types';
@@ -9,10 +9,28 @@ import { AddPieceTab } from './components/AddPieceTab';
 import { VintedReconciliationTab } from './components/VintedReconciliationTab';
 import { SaleModal } from './components/SaleModal';
 import { InstallPwaModal } from './components/InstallPwaModal';
+import { CloudSyncModal } from './components/CloudSyncModal';
 import { cleanStr } from './services/matching';
+import {
+  getSupabaseConfig,
+  getSupabaseClient,
+  cloudFetchItems,
+  cloudAddItem,
+  cloudBulkAddItems,
+  cloudUpdateItemPrice,
+  cloudDeleteItem,
+  cloudFetchSales,
+  cloudAddSale,
+  cloudFetchVintedCatalog,
+  cloudSeedVintedCatalog
+} from './db/supabase';
 
 export const App: React.FC = () => {
   const [activeTab, setActiveTab] = useState<'inventory' | 'vinted' | 'add' | 'dashboard'>('inventory');
+
+  // Cloud Database Sync state
+  const [isCloudModalOpen, setIsCloudModalOpen] = useState(false);
+  const [isCloudConnected, setIsCloudConnected] = useState(false);
 
   // PWA Install state
   const [deferredPrompt, setDeferredPrompt] = useState<any>(null);
@@ -31,30 +49,152 @@ export const App: React.FC = () => {
   const sales = useLiveQuery(() => db.sales.orderBy('saleDate').reverse().toArray(), []) || [];
   const vintedCatalog = useLiveQuery(() => db.vintedCatalog.toArray(), []) || [];
 
-  // Init DB & PWA listener on Mount
+  // Cloud Sync Handler
+  const syncWithCloud = useCallback(async () => {
+    const { isConfigured } = getSupabaseConfig();
+    if (!isConfigured) {
+      setIsCloudConnected(false);
+      return;
+    }
+
+    const client = getSupabaseClient();
+    if (!client) {
+      setIsCloudConnected(false);
+      return;
+    }
+
+    try {
+      setIsCloudConnected(true);
+
+      // 1. Fetch remote items and merge into local Dexie
+      const remoteItems = await cloudFetchItems();
+      if (remoteItems) {
+        if (remoteItems.length > 0) {
+          await db.items.bulkPut(remoteItems);
+        } else {
+          // If remote is empty but local has items, push local to remote
+          const localItems = await db.items.toArray();
+          if (localItems.length > 0) {
+            await cloudBulkAddItems(localItems);
+          }
+        }
+      }
+
+      // 2. Fetch remote sales and merge
+      const remoteSales = await cloudFetchSales();
+      if (remoteSales) {
+        if (remoteSales.length > 0) {
+          await db.sales.bulkPut(remoteSales);
+        } else {
+          const localSales = await db.sales.toArray();
+          if (localSales.length > 0) {
+            for (const s of localSales) {
+              await cloudAddSale(s);
+            }
+          }
+        }
+      }
+
+      // 3. Fetch remote Vinted catalog
+      const remoteCatalog = await cloudFetchVintedCatalog();
+      if (remoteCatalog && remoteCatalog.length > 0) {
+        await db.vintedCatalog.bulkPut(remoteCatalog);
+      } else {
+        const localCatalog = await db.vintedCatalog.toArray();
+        if (localCatalog.length > 0) {
+          await cloudSeedVintedCatalog(localCatalog);
+        }
+      }
+    } catch (e) {
+      console.error('Error during cloud sync:', e);
+    }
+  }, []);
+
+  // Init DB, Cloud & Realtime on Mount
   useEffect(() => {
     initDatabase();
 
-    // Check iOS
+    // Check iOS & standalone
     const ua = window.navigator.userAgent.toLowerCase();
-    const isIosDevice = /iphone|ipad|ipod/.test(ua);
-    setIsIos(isIosDevice);
-
-    // Check standalone mode
-    const isAppStandalone =
+    setIsIos(/iphone|ipad|ipod/.test(ua));
+    setIsStandalone(
       window.matchMedia('(display-mode: standalone)').matches ||
-      (window.navigator as any).standalone === true;
-    setIsStandalone(isAppStandalone);
+      (window.navigator as any).standalone === true
+    );
 
-    // Listen for Chrome / Android beforeinstallprompt
+    // Initial cloud sync
+    syncWithCloud();
+
+    // Real-time subscription across all devices
+    const client = getSupabaseClient();
+    let channel: any = null;
+
+    if (client) {
+      channel = client
+        .channel('kozha-realtime-changes')
+        .on(
+          'postgres_changes',
+          { event: '*', schema: 'public', table: 'items' },
+          async (payload) => {
+            if (payload.eventType === 'INSERT' || payload.eventType === 'UPDATE') {
+              const r = payload.new;
+              await db.items.put({
+                id: r.id,
+                brand: r.brand,
+                title: r.title,
+                category: r.category,
+                size: r.size || '',
+                source: r.source || 'Flea Market',
+                purchasePrice: Number(r.purchase_price) || 0,
+                targetPrice: Number(r.target_price) || 0,
+                photo: r.photo || '',
+                purchaseDate: r.purchase_date || '',
+                vintedId: r.vinted_id
+              });
+            } else if (payload.eventType === 'DELETE') {
+              await db.items.delete(payload.old.id);
+            }
+          }
+        )
+        .on(
+          'postgres_changes',
+          { event: '*', schema: 'public', table: 'sales' },
+          async (payload) => {
+            if (payload.eventType === 'INSERT' || payload.eventType === 'UPDATE') {
+              const r = payload.new;
+              await db.sales.put({
+                id: r.id,
+                itemId: r.item_id,
+                brand: r.brand,
+                title: r.title,
+                channel: r.channel,
+                salePrice: Number(r.sale_price) || 0,
+                purchasePrice: Number(r.purchase_price) || 0,
+                photo: r.photo || '',
+                saleDate: r.sale_date,
+                purchaseDate: r.purchase_date,
+                paymentMethod: r.payment_method
+              });
+            }
+          }
+        )
+        .subscribe();
+    }
+
+    // PWA beforeinstallprompt
     const handleBeforeInstall = (e: Event) => {
       e.preventDefault();
       setDeferredPrompt(e);
     };
-
     window.addEventListener('beforeinstallprompt', handleBeforeInstall);
-    return () => window.removeEventListener('beforeinstallprompt', handleBeforeInstall);
-  }, []);
+
+    return () => {
+      window.removeEventListener('beforeinstallprompt', handleBeforeInstall);
+      if (client && channel) {
+        client.removeChannel(channel);
+      }
+    };
+  }, [syncWithCloud]);
 
   const handleNativeInstall = async () => {
     if (deferredPrompt) {
@@ -67,9 +207,12 @@ export const App: React.FC = () => {
     }
   };
 
-  // Handlers
+  // Handlers with Cloud Propagation
   const handleAddItem = async (newItem: Item) => {
     await db.items.add(newItem);
+    if (getSupabaseConfig().isConfigured) {
+      await cloudAddItem(newItem);
+    }
     setActiveTab('inventory');
   };
 
@@ -102,6 +245,12 @@ export const App: React.FC = () => {
 
     await db.items.delete(item.id);
     await db.sales.add(newSale);
+
+    if (getSupabaseConfig().isConfigured) {
+      await cloudDeleteItem(item.id);
+      await cloudAddSale(newSale);
+    }
+
     setActiveTab('dashboard');
   };
 
@@ -130,6 +279,9 @@ export const App: React.FC = () => {
 
     if (newItems.length > 0) {
       await db.items.bulkAdd(newItems);
+      if (getSupabaseConfig().isConfigured) {
+        await cloudBulkAddItems(newItems);
+      }
       alert(`Success!\nAll ${imported} verified items from Rita's Vinted wardrobe were imported into your active stock.\n\nNote: Initial purchase costs are set to 0 € by default. You can input your actual paid purchase prices directly in the inventory view.`);
       setActiveTab('inventory');
     } else {
@@ -139,6 +291,9 @@ export const App: React.FC = () => {
 
   const handleUpdatePurchasePrice = async (itemId: string, newPrice: number) => {
     await db.items.update(itemId, { purchasePrice: newPrice });
+    if (getSupabaseConfig().isConfigured) {
+      await cloudUpdateItemPrice(itemId, newPrice);
+    }
   };
 
   const handleQuickAddVintedToCompta = async (vnt: VintedItem) => {
@@ -163,6 +318,9 @@ export const App: React.FC = () => {
     };
 
     await db.items.add(newItem);
+    if (getSupabaseConfig().isConfigured) {
+      await cloudAddItem(newItem);
+    }
     alert(`${vnt.brand} added to inventory with an actual purchase cost of ${cost} €.`);
   };
 
@@ -181,7 +339,7 @@ export const App: React.FC = () => {
   return (
     <div className="min-h-screen flex flex-col bg-canvas text-primary">
       
-      {/* Header with Mobile Burger Menu & PWA Install Button */}
+      {/* Header with Mobile Burger Menu, Cloud Sync & PWA Install Button */}
       <Header
         activeTab={activeTab}
         onTabChange={setActiveTab}
@@ -189,7 +347,9 @@ export const App: React.FC = () => {
         vintedCount={vintedCatalog.length}
         salesCount={sales.length}
         onOpenInstallModal={() => setIsInstallModalOpen(true)}
+        onOpenCloudModal={() => setIsCloudModalOpen(true)}
         isStandalone={isStandalone}
+        isCloudConnected={isCloudConnected}
       />
 
       <main className="max-w-[1280px] w-full mx-auto px-4 sm:px-6 py-5 flex-1">
@@ -303,6 +463,13 @@ export const App: React.FC = () => {
         isIos={isIos}
         hasNativePrompt={!!deferredPrompt}
         onNativeInstall={handleNativeInstall}
+      />
+
+      {/* Cloud Sync Modal */}
+      <CloudSyncModal
+        isOpen={isCloudModalOpen}
+        onClose={() => setIsCloudModalOpen(false)}
+        onSyncSuccess={syncWithCloud}
       />
     </div>
   );

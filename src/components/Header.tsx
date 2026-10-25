@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Menu, X, Package, RefreshCw, PlusCircle, BarChart3, Download, Smartphone } from 'lucide-react';
+import { Menu, X, Package, RefreshCw, PlusCircle, BarChart3, Download, Smartphone, Cloud } from 'lucide-react';
 
 interface HeaderProps {
   activeTab: 'inventory' | 'vinted' | 'add' | 'dashboard';
@@ -8,7 +8,9 @@ interface HeaderProps {
   vintedCount: number;
   salesCount: number;
   onOpenInstallModal?: () => void;
+  onOpenCloudModal?: () => void;
   isStandalone?: boolean;
+  isCloudConnected?: boolean;
 }
 
 export const Header: React.FC<HeaderProps> = ({
@@ -18,7 +20,9 @@ export const Header: React.FC<HeaderProps> = ({
   vintedCount,
   salesCount,
   onOpenInstallModal,
-  isStandalone = false
+  onOpenCloudModal,
+  isStandalone = false,
+  isCloudConnected = false
 }) => {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
@@ -43,6 +47,20 @@ export const Header: React.FC<HeaderProps> = ({
 
         {/* Action Right (Mobile Burger + Quick Install Pill) */}
         <div className="flex items-center gap-2 md:hidden">
+          {onOpenCloudModal && (
+            <button
+              onClick={onOpenCloudModal}
+              className={`p-1.5 rounded-sm border text-xs flex items-center gap-1 ${
+                isCloudConnected
+                  ? 'border-profit/40 text-profit bg-profit-soft'
+                  : 'border-border text-secondary bg-surface'
+              }`}
+              title="Cloud Database Sync"
+            >
+              <Cloud size={14} />
+            </button>
+          )}
+
           {!isStandalone && onOpenInstallModal && (
             <button
               onClick={onOpenInstallModal}
@@ -65,19 +83,35 @@ export const Header: React.FC<HeaderProps> = ({
         </div>
 
         {/* Desktop Quick Indicators & Install Button */}
-        <div className="hidden md:flex items-center gap-4 text-xs font-mono">
-          <span className="inline-flex items-center gap-1.5 text-profit">
-            <span className="w-2 h-2 rounded-full bg-profit"></span>
-            <span>Profile @nuzhdina.ri connected</span>
+        <div className="hidden md:flex items-center gap-3 text-xs font-mono">
+          {/* Cloud Sync Status Pill */}
+          {onOpenCloudModal && (
+            <button
+              onClick={onOpenCloudModal}
+              className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-sm border transition-all ${
+                isCloudConnected
+                  ? 'bg-profit-soft text-profit border-profit/30 hover:brightness-95'
+                  : 'bg-surface-subtle text-secondary border-border hover:border-accent hover:text-primary'
+              }`}
+              title="Click to configure live Supabase synchronization"
+            >
+              <Cloud size={13} className={isCloudConnected ? 'text-profit' : 'text-secondary'} />
+              <span>{isCloudConnected ? 'Cloud Live' : 'Connect Cloud DB'}</span>
+            </button>
+          )}
+
+          <span className="inline-flex items-center gap-1.5 text-secondary border border-border px-2.5 py-1 rounded-sm bg-surface">
+            <span className="w-1.5 h-1.5 rounded-full bg-profit"></span>
+            <span>@nuzhdina.ri connected</span>
           </span>
 
           {!isStandalone && onOpenInstallModal ? (
             <button
               onClick={onOpenInstallModal}
-              className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold bg-accent text-white rounded-sm hover:brightness-110 shadow-sm transition-all"
+              className="flex items-center gap-1.5 px-3 py-1 text-xs font-semibold bg-accent text-white rounded-sm hover:brightness-110 shadow-sm transition-all"
             >
-              <Download size={14} />
-              <span>Install Web App</span>
+              <Download size={13} />
+              <span>Install App</span>
             </button>
           ) : (
             <span className="font-mono text-[11px] px-2 py-0.5 bg-surface border border-border text-secondary rounded-sm">
@@ -155,9 +189,32 @@ export const Header: React.FC<HeaderProps> = ({
             </span>
           </button>
 
+          {/* Cloud Database Sync in Mobile Drawer */}
+          {onOpenCloudModal && (
+            <div className="pt-2 border-t border-border mt-2">
+              <button
+                onClick={() => {
+                  setMobileMenuOpen(false);
+                  onOpenCloudModal();
+                }}
+                className="w-full flex items-center justify-between px-3.5 py-2 rounded-sm text-xs font-semibold text-secondary hover:bg-surface-subtle transition-all"
+              >
+                <div className="flex items-center gap-2">
+                  <Cloud size={16} className={isCloudConnected ? 'text-profit' : 'text-accent'} />
+                  <span>Cloud Database Sync</span>
+                </div>
+                <span className={`font-mono text-[10px] px-1.5 py-0.5 rounded-sm ${
+                  isCloudConnected ? 'bg-profit-soft text-profit font-bold' : 'bg-surface border text-tertiary'
+                }`}>
+                  {isCloudConnected ? 'LIVE' : 'LOCAL'}
+                </span>
+              </button>
+            </div>
+          )}
+
           {/* Installation PWA in Burger Menu */}
           {!isStandalone && onOpenInstallModal && (
-            <div className="pt-3 border-t border-border mt-3">
+            <div className="pt-2 border-t border-border mt-2">
               <button
                 onClick={() => {
                   setMobileMenuOpen(false);
