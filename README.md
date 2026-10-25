@@ -1,4 +1,4 @@
-# Rita Compta — Luxe Vintage 🧥✨
+# Kozha — Luxe Vintage 🧥✨
 
 Application web mobile-first & PWA sur-mesure pour la gestion d'inventaire, le rapprochement de catalogue Vinted et la comptabilité des ventes de pièces de luxe vintage.
 

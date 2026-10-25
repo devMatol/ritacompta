@@ -25,7 +25,7 @@ export const InstallPwaModal: React.FC<InstallPwaModalProps> = ({
         <div className="flex justify-between items-baseline border-b border-border pb-3 mb-4">
           <div className="flex items-center gap-2">
             <Download size={18} className="text-accent" />
-            <h3 className="font-heading text-lg font-bold text-primary">Installer Rita Compta</h3>
+            <h3 className="font-heading text-lg font-bold text-primary">Installer Kozha</h3>
           </div>
           <button onClick={onClose} className="text-secondary hover:text-primary p-1">
             <X size={18} />
@@ -33,9 +33,9 @@ export const InstallPwaModal: React.FC<InstallPwaModalProps> = ({
         </div>
 
         <div className="flex items-center gap-3.5 p-3.5 bg-surface-subtle border border-border rounded-sm mb-5">
-          <img src="/icon.svg" alt="Rita Compta Logo" className="w-12 h-12 rounded-sm border border-border" />
+          <img src="/icon.svg" alt="Kozha Logo" className="w-12 h-12 rounded-sm border border-border" />
           <div>
-            <div className="font-heading font-bold text-sm text-primary">Rita Compta</div>
+            <div className="font-heading font-bold text-sm text-primary">Kozha</div>
             <div className="text-xs text-secondary">Accès instantané, plein écran & mode hors ligne sur les marchés</div>
           </div>
         </div>
@@ -43,7 +43,7 @@ export const InstallPwaModal: React.FC<InstallPwaModalProps> = ({
         {hasNativePrompt ? (
           <div className="space-y-4">
             <p className="text-xs text-secondary leading-relaxed">
-              Installez Rita Compta sur votre écran d'accueil ou sur votre ordinateur pour l'utiliser sans barre de navigateur, comme une application native.
+              Installez Kozha sur votre écran d'accueil ou sur votre ordinateur pour l'utiliser sans barre de navigateur, comme une application native.
             </p>
             <div className="flex justify-end gap-3 pt-2">
               <button
@@ -84,7 +84,7 @@ export const InstallPwaModal: React.FC<InstallPwaModalProps> = ({
               <li className="flex items-start gap-2.5">
                 <span className="font-mono font-bold text-accent">3.</span>
                 <span>
-                  Touchez <strong className="text-primary">Ajouter</strong> en haut à droite. L'icône Rita Compta apparaîtra directement sur votre écran d'accueil !
+                  Touchez <strong className="text-primary">Ajouter</strong> en haut à droite. L'icône Kozha apparaîtra directement sur votre écran d'accueil !
                 </span>
               </li>
             </ol>

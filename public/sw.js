@@ -1,4 +1,4 @@
-const CACHE_NAME = 'rita-compta-cache-v1';
+const CACHE_NAME = 'kozha-cache-v1';
 const ASSETS_TO_CACHE = [
   '/',
   '/index.html',

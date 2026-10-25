@@ -34,7 +34,7 @@ export const Header: React.FC<HeaderProps> = ({
         {/* Brand */}
         <div className="flex items-baseline gap-3">
           <h1 className="font-heading text-2xl font-bold tracking-tight text-primary">
-            Rita Compta
+            Kozha
           </h1>
           <span className="font-mono text-[11px] uppercase tracking-widest text-accent px-2 py-0.5 border border-accent rounded-sm">
             Luxe Vintage
