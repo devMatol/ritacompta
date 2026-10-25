@@ -1,9 +1,9 @@
 <!DOCTYPE html>
-<html lang="fr" data-theme="drouot-archive">
+<html lang="en" data-theme="drouot-archive">
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
-    <title>Kozha — Luxe Vintage</title>
+    <title>Kozha — Vintage Luxury</title>
     
     <!-- PWA & Favicon -->
     <link rel="icon" type="image/svg+xml" href="/icon.svg" />
@@ -26,14 +26,14 @@
     <div id="root"></div>
     <script type="module" src="/src/main.tsx"></script>
 
-    <!-- Enregistrement Service Worker PWA -->
+    <!-- PWA Service Worker Registration -->
     <script>
       if ('serviceWorker' in navigator) {
         window.addEventListener('load', () => {
           navigator.serviceWorker.register('/sw.js').then((reg) => {
-            console.log('PWA ServiceWorker actif:', reg.scope);
+            console.log('PWA ServiceWorker active:', reg.scope);
           }).catch((err) => {
-            console.log('Erreur ServiceWorker:', err);
+            console.log('ServiceWorker error:', err);
           });
         });
       }

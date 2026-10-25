@@ -37,7 +37,7 @@ export const Header: React.FC<HeaderProps> = ({
             Kozha
           </h1>
           <span className="font-mono text-[11px] uppercase tracking-widest text-accent px-2 py-0.5 border border-accent rounded-sm">
-            Luxe Vintage
+            Vintage Luxury
           </span>
         </div>
 
@@ -47,10 +47,10 @@ export const Header: React.FC<HeaderProps> = ({
             <button
               onClick={onOpenInstallModal}
               className="flex items-center gap-1.5 px-2.5 py-1.5 text-xs font-semibold bg-surface border border-accent text-accent rounded-sm active:scale-95 transition-all shadow-sm"
-              title="Installer l'application"
+              title="Install application"
             >
               <Smartphone size={14} />
-              <span>Installer</span>
+              <span>Install</span>
             </button>
           )}
 
@@ -58,7 +58,7 @@ export const Header: React.FC<HeaderProps> = ({
           <button
             onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
             className="p-2 rounded-sm border border-border-strong bg-surface text-primary hover:bg-surface-subtle transition-all"
-            aria-label="Menu de navigation"
+            aria-label="Navigation menu"
           >
             {mobileMenuOpen ? <X size={20} /> : <Menu size={20} />}
           </button>
@@ -68,7 +68,7 @@ export const Header: React.FC<HeaderProps> = ({
         <div className="hidden md:flex items-center gap-4 text-xs font-mono">
           <span className="inline-flex items-center gap-1.5 text-profit">
             <span className="w-2 h-2 rounded-full bg-profit"></span>
-            <span>Profil @nuzhdina.ri connecté</span>
+            <span>Profile @nuzhdina.ri connected</span>
           </span>
 
           {!isStandalone && onOpenInstallModal ? (
@@ -77,11 +77,11 @@ export const Header: React.FC<HeaderProps> = ({
               className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold bg-accent text-white rounded-sm hover:brightness-110 shadow-sm transition-all"
             >
               <Download size={14} />
-              <span>Installer l'app (PWA)</span>
+              <span>Install Web App</span>
             </button>
           ) : (
             <span className="font-mono text-[11px] px-2 py-0.5 bg-surface border border-border text-secondary rounded-sm">
-              ✓ App installée
+              App Installed
             </span>
           )}
         </div>
@@ -100,7 +100,7 @@ export const Header: React.FC<HeaderProps> = ({
           >
             <div className="flex items-center gap-2.5">
               <Package size={17} className="text-accent" />
-              <span>Inventaire Actif</span>
+              <span>Active Inventory</span>
             </div>
             <span className="font-mono text-xs px-2 py-0.5 bg-surface rounded-full border border-border text-secondary">
               {itemsCount}
@@ -117,10 +117,10 @@ export const Header: React.FC<HeaderProps> = ({
           >
             <div className="flex items-center gap-2.5">
               <RefreshCw size={17} className="text-profit" />
-              <span>Rapprochement Vinted</span>
+              <span>Vinted Sync</span>
             </div>
             <span className="font-mono text-xs px-2 py-0.5 bg-profit-soft text-profit rounded-full font-bold">
-              {vintedCount} en ligne
+              {vintedCount} listed
             </span>
           </button>
 
@@ -134,7 +134,7 @@ export const Header: React.FC<HeaderProps> = ({
           >
             <div className="flex items-center gap-2.5">
               <PlusCircle size={17} className="text-accent" />
-              <span>Saisie Express (+ Photo)</span>
+              <span>Quick Add (+ Photo)</span>
             </div>
           </button>
 
@@ -148,10 +148,10 @@ export const Header: React.FC<HeaderProps> = ({
           >
             <div className="flex items-center gap-2.5">
               <BarChart3 size={17} className="text-primary" />
-              <span>Tableau de Bord des Ventes</span>
+              <span>Sales Dashboard</span>
             </div>
             <span className="font-mono text-xs px-2 py-0.5 bg-surface rounded-full border border-border text-secondary">
-              {salesCount} vente(s)
+              {salesCount} sale(s)
             </span>
           </button>
 
@@ -166,7 +166,7 @@ export const Header: React.FC<HeaderProps> = ({
                 className="w-full flex items-center justify-center gap-2 px-3.5 py-2.5 rounded-sm text-xs font-bold uppercase tracking-wider bg-accent text-white hover:brightness-110 shadow-sm transition-all"
               >
                 <Download size={16} />
-                <span>📲 Installer sur mon Téléphone</span>
+                <span>Install on Device</span>
               </button>
             </div>
           )}

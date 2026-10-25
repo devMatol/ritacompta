@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Sale } from '../types';
-import { TrendingUp, ShoppingBag, DollarSign, Clock, Store, Globe, Search, Filter } from 'lucide-react';
+import { TrendingUp, ShoppingBag, DollarSign, Clock, Store, Globe, Search, Filter, BarChart3, Package } from 'lucide-react';
 
 interface DashboardTabProps {
   sales: Sale[];
@@ -9,31 +9,31 @@ interface DashboardTabProps {
 
 export const DashboardTab: React.FC<DashboardTabProps> = ({ sales, onNavigateAdd }) => {
   const [salesSearch, setSalesSearch] = useState('');
-  const [channelFilter, setChannelFilter] = useState<'ALL' | 'Vinted' | 'Marché' | 'Direct'>('ALL');
+  const [channelFilter, setChannelFilter] = useState<'ALL' | 'Vinted' | 'Flea Market' | 'Direct'>('ALL');
 
   if (sales.length === 0) {
     return (
       <div className="bg-surface border border-border rounded-md p-10 text-center shadow-sm">
-        <div className="w-16 h-16 rounded-full bg-surface-subtle border border-border flex items-center justify-center mx-auto mb-4 text-2xl">
-          📊
+        <div className="w-16 h-16 rounded-full bg-surface-subtle border border-border flex items-center justify-center mx-auto mb-4 text-secondary">
+          <BarChart3 size={28} />
         </div>
         <h2 className="font-heading text-2xl font-bold text-primary mb-2">
-          Tableau de Bord des Ventes
+          Sales Dashboard
         </h2>
         <p className="text-xs text-secondary max-w-md mx-auto mb-6">
-          Aucune vente enregistrée pour le moment. Dès que vous enregistrez une vente (sur Vinted ou sur un marché), cet onglet affichera vos chiffres clés, votre marge nette réelle, le comparatif des canaux et l'historique complet de vos ventes.
+          No sales recorded yet. As soon as you record a sale (on Vinted or in-person), this tab will display your key metrics, net margin, channel comparison, and sales ledger.
         </p>
         <button
           onClick={onNavigateAdd}
           className="px-5 py-2.5 text-xs font-bold uppercase tracking-wider bg-accent text-white rounded-sm hover:brightness-110 transition-all shadow-sm"
         >
-          + Enregistrer un vêtement en stock
+          + Record an Item in Stock
         </button>
       </div>
     );
   }
 
-  // Calculs financiers réels
+  // Financial calculations
   const totalTurnover = sales.reduce((acc, s) => acc + Number(s.salePrice), 0);
   const totalCost = sales.reduce((acc, s) => acc + Number(s.purchasePrice), 0);
   const netMargin = totalTurnover - totalCost;
@@ -46,19 +46,19 @@ export const DashboardTab: React.FC<DashboardTabProps> = ({ sales, onNavigateAdd
   });
   const avgDays = sales.length > 0 ? Math.round(totalDays / sales.length) : 0;
 
-  // Stats par canal
+  // Channel metrics
   const vintedSales = sales.filter(s => s.channel === 'Vinted');
-  const marcheSales = sales.filter(s => s.channel === 'Marché');
+  const inPersonSales = sales.filter(s => s.channel !== 'Vinted');
   
   const vCA = vintedSales.reduce((acc, s) => acc + Number(s.salePrice), 0);
   const vCost = vintedSales.reduce((acc, s) => acc + Number(s.purchasePrice), 0);
   const vMargin = vCA - vCost;
   
-  const mCA = marcheSales.reduce((acc, s) => acc + Number(s.salePrice), 0);
-  const mCost = marcheSales.reduce((acc, s) => acc + Number(s.purchasePrice), 0);
+  const mCA = inPersonSales.reduce((acc, s) => acc + Number(s.salePrice), 0);
+  const mCost = inPersonSales.reduce((acc, s) => acc + Number(s.purchasePrice), 0);
   const mMargin = mCA - mCost;
 
-  // Stats par marque
+  // Brand statistics
   const brandStats: Record<string, { name: string; count: number; margin: number; totalDays: number }> = {};
   sales.forEach(s => {
     if (!brandStats[s.brand]) {
@@ -71,7 +71,7 @@ export const DashboardTab: React.FC<DashboardTabProps> = ({ sales, onNavigateAdd
   });
   const sortedBrands = Object.values(brandStats).sort((a, b) => b.margin - a.margin);
 
-  // Vente Facile
+  // Fast Sales
   const fastSales = [...sales]
     .map(s => {
       const days = Math.max(1, Math.round((new Date(s.saleDate).getTime() - new Date(s.purchaseDate).getTime()) / (1000 * 60 * 60 * 24)));
@@ -80,122 +80,126 @@ export const DashboardTab: React.FC<DashboardTabProps> = ({ sales, onNavigateAdd
     .sort((a, b) => a.days - b.days)
     .slice(0, 4);
 
-  // Filtrage du journal des ventes
+  // Filtered sales ledger
   const filteredSales = sales.filter(s => {
     const matchesSearch =
       s.title.toLowerCase().includes(salesSearch.toLowerCase()) ||
       s.brand.toLowerCase().includes(salesSearch.toLowerCase());
-    const matchesChannel = channelFilter === 'ALL' || s.channel === channelFilter;
+    const matchesChannel =
+      channelFilter === 'ALL' ||
+      (channelFilter === 'Vinted' && s.channel === 'Vinted') ||
+      (channelFilter === 'Flea Market' && s.channel === 'Flea Market') ||
+      (channelFilter === 'Direct' && s.channel === 'Direct');
     return matchesSearch && matchesChannel;
   });
 
   return (
     <div className="space-y-6 animate-fade-in">
       
-      {/* 1. GRILLE DES KPIS FINANCIERS DES VENTES */}
+      {/* 1. FINANCIAL KPIS */}
       <section className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 border border-border bg-surface rounded-md overflow-hidden shadow-sm">
         <div className="p-5 border-b sm:border-r border-border">
           <div className="flex items-center justify-between text-xs uppercase tracking-wider text-secondary mb-1">
-            <span>Chiffre d'Affaires</span>
+            <span>Total Revenue</span>
             <DollarSign size={14} className="text-accent" />
           </div>
           <div className="font-mono text-2xl sm:text-3xl font-semibold text-primary">
-            {totalTurnover.toLocaleString('fr-FR')} €
+            {totalTurnover.toLocaleString('en-US')} €
           </div>
           <div className="text-xs text-secondary mt-1">
-            Total sur {sales.length} vente(s) clôturée(s)
+            Total across {sales.length} closed sale(s)
           </div>
         </div>
 
         <div className="p-5 border-b lg:border-r border-border">
           <div className="flex items-center justify-between text-xs uppercase tracking-wider text-secondary mb-1">
-            <span>Bénéfice Net Réel</span>
+            <span>Net Profit</span>
             <TrendingUp size={14} className="text-profit" />
           </div>
           <div className="font-mono text-2xl sm:text-3xl font-semibold text-profit">
-            +{netMargin.toLocaleString('fr-FR')} €
+            +{netMargin.toLocaleString('en-US')} €
           </div>
           <div className="font-mono text-xs text-profit font-medium mt-1">
-            ROI Moyen : +{avgRoi}%
+            Avg ROI: +{avgRoi}%
           </div>
         </div>
 
         <div className="p-5 border-b sm:border-r border-border">
           <div className="flex items-center justify-between text-xs uppercase tracking-wider text-secondary mb-1">
-            <span>Ticket Moyen</span>
+            <span>Average Order Value</span>
             <ShoppingBag size={14} className="text-tertiary" />
           </div>
           <div className="font-mono text-2xl sm:text-3xl font-semibold text-primary">
             {sales.length > 0 ? Math.round(totalTurnover / sales.length) : 0} €
           </div>
           <div className="text-xs text-secondary mt-1">
-            Panier moyen par vente
+            Average ticket per sale
           </div>
         </div>
 
         <div className="p-5">
           <div className="flex items-center justify-between text-xs uppercase tracking-wider text-secondary mb-1">
-            <span>Vélocité Moyenne</span>
+            <span>Average Velocity</span>
             <Clock size={14} className="text-accent" />
           </div>
           <div className="font-mono text-2xl sm:text-3xl font-semibold text-primary">
-            {avgDays} Jours
+            {avgDays} Days
           </div>
           <div className="text-xs text-accent font-medium mt-1">
-            ⚡ Délai d'écoulement moyen
+            Avg days to sell
           </div>
         </div>
       </section>
 
-      {/* 2. DUEL DES CANAUX : VINTED VS MARCHÉS */}
+      {/* 2. CHANNELS COMPARISON */}
       <div className="bg-surface border border-border rounded-md p-6 shadow-sm">
         <div className="flex justify-between items-baseline border-b border-border pb-3 mb-5">
           <div>
             <h2 className="font-heading text-xl font-bold text-primary">
-              Comparatif des Canaux de Vente
+              Sales Channel Comparison
             </h2>
             <p className="text-xs text-secondary mt-0.5">
-              Où gagne-t-elle le plus d'argent net pour le temps investi ?
+              Net margin comparison by distribution channel.
             </p>
           </div>
           <span className="font-mono text-xs uppercase tracking-wider text-tertiary">
-            Vinted vs Marchés
+            Vinted vs In-Person
           </span>
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div className="p-5 bg-surface-subtle rounded-sm border-l-4 border-accent">
             <div className="flex items-center justify-between text-xs uppercase tracking-widest text-accent font-bold mb-2">
-              <span className="flex items-center gap-1.5"><Globe size={13} /> Ventes Vinted</span>
-              <span className="font-mono">{vintedSales.length} vente(s)</span>
+              <span className="flex items-center gap-1.5"><Globe size={13} /> Vinted Sales</span>
+              <span className="font-mono">{vintedSales.length} sale(s)</span>
             </div>
-            <div className="font-mono text-2xl font-bold text-primary my-1">{vCA.toLocaleString('fr-FR')} €</div>
+            <div className="font-mono text-2xl font-bold text-primary my-1">{vCA.toLocaleString('en-US')} €</div>
             <div className="text-xs text-secondary">
-              Marge nette : <strong className="text-profit">+{vMargin} €</strong> ({vCost > 0 ? Math.round((vMargin / vCost) * 100) : 0}% ROI)
+              Net margin: <strong className="text-profit">+{vMargin} €</strong> ({vCost > 0 ? Math.round((vMargin / vCost) * 100) : 0}% ROI)
             </div>
           </div>
 
           <div className="p-5 bg-surface-subtle rounded-sm border-l-4 border-profit">
             <div className="flex items-center justify-between text-xs uppercase tracking-widest text-profit font-bold mb-2">
-              <span className="flex items-center gap-1.5"><Store size={13} /> Ventes Marchés & Salons</span>
-              <span className="font-mono">{marcheSales.length} vente(s)</span>
+              <span className="flex items-center gap-1.5"><Store size={13} /> Flea Market & In-Person Sales</span>
+              <span className="font-mono">{inPersonSales.length} sale(s)</span>
             </div>
-            <div className="font-mono text-2xl font-bold text-primary my-1">{mCA.toLocaleString('fr-FR')} €</div>
+            <div className="font-mono text-2xl font-bold text-primary my-1">{mCA.toLocaleString('en-US')} €</div>
             <div className="text-xs text-secondary">
-              Marge nette : <strong className="text-profit">+{mMargin} €</strong> ({mCost > 0 ? Math.round((mMargin / mCost) * 100) : 0}% ROI)
+              Net margin: <strong className="text-profit">+{mMargin} €</strong> ({mCost > 0 ? Math.round((mMargin / mCost) * 100) : 0}% ROI)
             </div>
           </div>
         </div>
       </div>
 
-      {/* 3. RADAR DES MARQUES & HIT-PARADE */}
+      {/* 3. BRAND PERFORMANCE */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         
-        {/* Hit-Parade des Marques */}
+        {/* Top Brands Performance */}
         <div className="bg-surface border border-border rounded-md p-6 shadow-sm">
           <div className="flex justify-between items-baseline border-b border-border pb-3 mb-4">
-            <h2 className="font-heading text-xl font-bold text-primary">Hit-Parade des Marques</h2>
-            <span className="font-mono text-xs uppercase tracking-wider text-tertiary">Marge Réelle</span>
+            <h2 className="font-heading text-xl font-bold text-primary">Top Brands Performance</h2>
+            <span className="font-mono text-xs uppercase tracking-wider text-tertiary">Net Profit</span>
           </div>
 
           <div className="divide-y divide-border">
@@ -210,14 +214,14 @@ export const DashboardTab: React.FC<DashboardTabProps> = ({ sales, onNavigateAdd
                     <div>
                       <div className="font-heading font-bold text-base text-primary">{b.name}</div>
                       <div className="text-xs text-secondary">
-                        {b.count} pièce(s) · Écoulement moyen : {avgD} j
+                        {b.count} piece(s) · Avg sell time: {avgD}d
                       </div>
                     </div>
                   </div>
                   <div className="text-right">
                     <div className="font-mono font-bold text-profit text-base">+{b.margin} €</div>
                     <span className="font-mono text-[11px] text-profit bg-profit-soft px-1.5 py-0.5 rounded-sm">
-                      ⚡ {avgD <= 7 ? 'Ultra Rapide' : 'Fluide'}
+                      {avgD <= 7 ? 'Fast Moving' : 'Steady'}
                     </span>
                   </div>
                 </div>
@@ -226,14 +230,14 @@ export const DashboardTab: React.FC<DashboardTabProps> = ({ sales, onNavigateAdd
           </div>
         </div>
 
-        {/* Indice Vente Facile */}
+        {/* Fastest Sold Pieces */}
         <div className="bg-surface border border-border rounded-md p-6 shadow-sm">
           <div className="flex justify-between items-baseline border-b border-border pb-3 mb-4">
-            <h2 className="font-heading text-xl font-bold text-primary">Indice "Vente Facile"</h2>
-            <span className="font-mono text-xs uppercase tracking-wider text-tertiary">Vélocité Record</span>
+            <h2 className="font-heading text-xl font-bold text-primary">Fastest Sold Pieces</h2>
+            <span className="font-mono text-xs uppercase tracking-wider text-tertiary">Turnover Velocity</span>
           </div>
           <p className="text-xs text-secondary mb-4">
-            Les pièces vendues le plus rapidement avec leur rentabilité :
+            Items that sold fastest along with realized profitability:
           </p>
 
           <div className="divide-y divide-border">
@@ -244,12 +248,12 @@ export const DashboardTab: React.FC<DashboardTabProps> = ({ sales, onNavigateAdd
                     {item.brand} — {item.title}
                   </div>
                   <div className="text-xs text-secondary">
-                    Acheté {item.purchasePrice} € ➔ Vendu {item.salePrice} € ({item.channel})
+                    Bought {item.purchasePrice} € &rarr; Sold {item.salePrice} € ({item.channel})
                   </div>
                 </div>
                 <div className="text-right">
                   <div className="font-mono font-bold text-profit">+{item.margin} €</div>
-                  <div className="font-mono text-xs text-accent">Parti en {item.days} j</div>
+                  <div className="font-mono text-xs text-accent">Sold in {item.days}d</div>
                 </div>
               </div>
             ))}
@@ -258,27 +262,27 @@ export const DashboardTab: React.FC<DashboardTabProps> = ({ sales, onNavigateAdd
 
       </div>
 
-      {/* 4. LE JOURNAL DES VENTES DÉTAILLÉ */}
+      {/* 4. DETAILED SALES LEDGER */}
       <div className="bg-surface border border-border rounded-md p-6 shadow-sm">
         <div className="flex flex-wrap justify-between items-baseline gap-4 border-b border-border pb-4 mb-4">
           <div>
-            <h2 className="font-heading text-xl font-bold text-primary">Journal Détaillé des Ventes</h2>
+            <h2 className="font-heading text-xl font-bold text-primary">Detailed Sales Ledger</h2>
             <p className="text-xs text-secondary mt-0.5">
-              Historique certifié avec calcul de la marge nette (€ et %), du ROI et du délai de vente.
+              Certified history with net margin calculation (€ and %), ROI, and turnover time.
             </p>
           </div>
           <span className="font-mono text-xs font-semibold text-tertiary">
-            {filteredSales.length} Ventes
+            {filteredSales.length} Sales
           </span>
         </div>
 
-        {/* Filtres du Journal */}
+        {/* Filters */}
         <div className="flex flex-wrap items-center gap-3 mb-4">
           <div className="relative flex-1 min-w-[200px]">
             <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-tertiary" />
             <input
               type="text"
-              placeholder="Rechercher une vente par marque ou vêtement..."
+              placeholder="Search sales by brand or item title..."
               value={salesSearch}
               onChange={e => setSalesSearch(e.target.value)}
               className="w-full pl-9 pr-3 py-1.5 text-xs bg-surface border border-border-strong rounded-sm outline-none focus:border-accent"
@@ -292,28 +296,28 @@ export const DashboardTab: React.FC<DashboardTabProps> = ({ sales, onNavigateAdd
               onChange={e => setChannelFilter(e.target.value as any)}
               className="py-1.5 px-3 text-xs bg-surface border border-border-strong rounded-sm outline-none focus:border-accent"
             >
-              <option value="ALL">Tous les Canaux</option>
-              <option value="Vinted">Vinted uniquement</option>
-              <option value="Marché">Marché uniquement</option>
-              <option value="Direct">Vente directe</option>
+              <option value="ALL">All Channels</option>
+              <option value="Vinted">Vinted only</option>
+              <option value="Flea Market">Flea Market only</option>
+              <option value="Direct">Direct Sale</option>
             </select>
           </div>
         </div>
 
-        {/* Table du Journal */}
+        {/* Table */}
         <div className="overflow-x-auto max-h-[500px] overflow-y-auto border border-border rounded-sm">
           <table className="w-full text-left border-collapse">
             <thead className="sticky top-0 z-10">
               <tr className="border-b border-border-strong bg-surface-subtle text-[11px] font-semibold uppercase tracking-wider text-secondary">
                 <th className="py-2.5 px-3">Date</th>
                 <th className="py-2.5 px-3 w-14">Photo</th>
-                <th className="py-2.5 px-3">Pièce Vendue</th>
-                <th className="py-2.5 px-3">Canal</th>
-                <th className="py-2.5 px-3">Prix Vendu</th>
-                <th className="py-2.5 px-3">Coût Achat</th>
-                <th className="py-2.5 px-3">Marge Nette</th>
+                <th className="py-2.5 px-3">Item Sold</th>
+                <th className="py-2.5 px-3">Channel</th>
+                <th className="py-2.5 px-3">Sale Price</th>
+                <th className="py-2.5 px-3">Cost Price</th>
+                <th className="py-2.5 px-3">Net Margin</th>
                 <th className="py-2.5 px-3">ROI</th>
-                <th className="py-2.5 px-3">Délai</th>
+                <th className="py-2.5 px-3">Time</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-border">
@@ -335,8 +339,8 @@ export const DashboardTab: React.FC<DashboardTabProps> = ({ sales, onNavigateAdd
                           className="w-11 h-11 object-cover rounded-sm border border-border"
                         />
                       ) : (
-                        <div className="w-11 h-11 rounded-sm bg-surface-subtle border border-dashed border-border-strong flex items-center justify-center text-sm">
-                          ✓
+                        <div className="w-11 h-11 rounded-sm bg-surface-subtle border border-dashed border-border-strong flex items-center justify-center text-secondary">
+                          <Package size={14} />
                         </div>
                       )}
                     </td>
@@ -368,7 +372,7 @@ export const DashboardTab: React.FC<DashboardTabProps> = ({ sales, onNavigateAdd
                       +{roi}%
                     </td>
                     <td className="py-3 px-3 font-mono text-xs text-accent font-semibold">
-                      {days} j
+                      {days}d
                     </td>
                   </tr>
                 );

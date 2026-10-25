@@ -26,53 +26,53 @@ export const KpiBanner: React.FC<KpiBannerProps> = ({ items, sales }) => {
     <section className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 border border-border bg-surface rounded-md overflow-hidden mb-8 shadow-sm">
       <div className="p-5 border-b sm:border-r border-border">
         <div className="flex items-center justify-between text-xs uppercase tracking-wider text-secondary mb-1">
-          <span>Chiffre d'Affaires</span>
-          <span className="text-[10px]">Net Encaissé</span>
+          <span>Total Revenue</span>
+          <span className="text-[10px]">Net Realized</span>
         </div>
         <div className="font-mono text-2xl sm:text-3xl font-semibold text-primary">
-          {totalTurnover.toLocaleString('fr-FR')} €
+          {totalTurnover.toLocaleString('en-US')} €
         </div>
         <div className="text-xs text-profit font-medium mt-1">
-          ↗ {sales.length} pièces vendues
+          {sales.length} items sold
         </div>
       </div>
 
       <div className="p-5 border-b lg:border-r border-border">
         <div className="flex items-center justify-between text-xs uppercase tracking-wider text-secondary mb-1">
-          <span>Bénéfice Net Réel</span>
-          <span className="text-[10px]">Marge Brute</span>
+          <span>Net Profit</span>
+          <span className="text-[10px]">Gross Margin</span>
         </div>
         <div className="font-mono text-2xl sm:text-3xl font-semibold text-profit">
-          +{netMargin.toLocaleString('fr-FR')} €
+          +{netMargin.toLocaleString('en-US')} €
         </div>
         <div className="font-mono text-xs text-profit font-medium mt-1">
-          ROI Moyen : +{avgRoi}%
+          Avg ROI: +{avgRoi}%
         </div>
       </div>
 
       <div className="p-5 border-b sm:border-r border-border">
         <div className="flex items-center justify-between text-xs uppercase tracking-wider text-secondary mb-1">
-          <span>Valeur du Stock Actif</span>
-          <span className="text-[10px]">Prix Achat</span>
+          <span>Active Stock Value</span>
+          <span className="text-[10px]">Cost Value</span>
         </div>
         <div className="font-mono text-2xl sm:text-3xl font-semibold text-primary">
-          {stockPurchaseTotal.toLocaleString('fr-FR')} €
+          {stockPurchaseTotal.toLocaleString('en-US')} €
         </div>
         <div className="text-xs text-secondary mt-1">
-          Potentiel vente : ~{stockTargetTotal.toLocaleString('fr-FR')} €
+          Target resale: ~{stockTargetTotal.toLocaleString('en-US')} €
         </div>
       </div>
 
       <div className="p-5">
         <div className="flex items-center justify-between text-xs uppercase tracking-wider text-secondary mb-1">
-          <span>Vélocité Vente Facile</span>
-          <span className="text-[10px]">Écoulement</span>
+          <span>Turnover Velocity</span>
+          <span className="text-[10px]">Avg Days</span>
         </div>
         <div className="font-mono text-2xl sm:text-3xl font-semibold text-primary">
-          {avgDays} Jours
+          {avgDays} Days
         </div>
         <div className="text-xs text-accent font-medium mt-1 flex items-center gap-1">
-          <span>⚡ Écoulement fluide</span>
+          <span>Healthy turnover</span>
         </div>
       </div>
     </section>

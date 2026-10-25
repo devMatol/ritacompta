@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Item } from '../types';
+import { Package } from 'lucide-react';
 
 interface SaleModalProps {
   isOpen: boolean;
@@ -20,7 +21,7 @@ export const SaleModal: React.FC<SaleModalProps> = ({
 }) => {
   const [salePrice, setSalePrice] = useState<string>('');
   const [channel, setChannel] = useState<string>(initialChannel);
-  const [paymentMethod, setPaymentMethod] = useState<string>('Espèces');
+  const [paymentMethod, setPaymentMethod] = useState<string>('Cash');
 
   useEffect(() => {
     if (item) {
@@ -34,7 +35,7 @@ export const SaleModal: React.FC<SaleModalProps> = ({
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (!salePrice) return;
-    onConfirmSale(item, parseFloat(salePrice), channel, channel === 'Marché' ? paymentMethod : undefined);
+    onConfirmSale(item, parseFloat(salePrice), channel, channel === 'Flea Market' ? paymentMethod : undefined);
     onClose();
   };
 
@@ -42,9 +43,9 @@ export const SaleModal: React.FC<SaleModalProps> = ({
     <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4">
       <div className="bg-surface border border-border-strong rounded-md w-full max-w-md p-6 shadow-xl animate-fade-in">
         <div className="flex justify-between items-baseline border-b border-border pb-3 mb-4">
-          <h3 className="font-heading text-lg font-bold text-primary">Enregistrer la Vente</h3>
+          <h3 className="font-heading text-lg font-bold text-primary">Record Sale</h3>
           <span className="font-mono text-xs uppercase tracking-wider text-tertiary">
-            RÉF. #{item.id}
+            REF. #{item.id}
           </span>
         </div>
 
@@ -52,12 +53,14 @@ export const SaleModal: React.FC<SaleModalProps> = ({
           {item.photo ? (
             <img src={item.photo} alt={item.title} className="w-14 h-14 object-cover rounded-sm border border-border" />
           ) : (
-            <div className="w-14 h-14 rounded-sm bg-surface flex items-center justify-center text-xl">🧥</div>
+            <div className="w-14 h-14 rounded-sm bg-surface flex items-center justify-center text-secondary">
+              <Package size={22} />
+            </div>
           )}
           <div>
             <div className="font-heading font-bold text-sm text-primary">{item.brand} — {item.title}</div>
             <div className="text-xs text-secondary mt-0.5">
-              Coût d'achat : <span className="font-mono font-semibold text-primary">{item.purchasePrice} €</span>
+              Purchase cost: <span className="font-mono font-semibold text-primary">{item.purchasePrice} €</span>
             </div>
           </div>
         </div>
@@ -65,22 +68,22 @@ export const SaleModal: React.FC<SaleModalProps> = ({
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
             <label className="block text-xs uppercase tracking-wider font-semibold text-secondary mb-1">
-              Canal de Vente
+              Sales Channel
             </label>
             <select
               value={channel}
               onChange={(e) => setChannel(e.target.value)}
               className="w-full px-3 py-2 text-sm bg-surface border border-border-strong rounded-sm outline-none focus:border-accent"
             >
-              <option value="Vinted">Vinted (Vente en ligne)</option>
-              <option value="Marché">Marché aux Puces / Stand</option>
-              <option value="Direct">Vente Directe / Privée</option>
+              <option value="Vinted">Vinted (Online)</option>
+              <option value="Flea Market">Flea Market / Pop-up</option>
+              <option value="Direct">Direct / Private Sale</option>
             </select>
           </div>
 
           <div>
             <label className="block text-xs uppercase tracking-wider font-semibold text-secondary mb-1">
-              Prix Final Vendu Net (€)
+              Final Sale Price (€)
             </label>
             <input
               type="number"
@@ -92,19 +95,19 @@ export const SaleModal: React.FC<SaleModalProps> = ({
             />
           </div>
 
-          {channel === 'Marché' && (
+          {channel === 'Flea Market' && (
             <div>
               <label className="block text-xs uppercase tracking-wider font-semibold text-secondary mb-1">
-                Moyen de Paiement Marché
+                Payment Method
               </label>
               <select
                 value={paymentMethod}
                 onChange={(e) => setPaymentMethod(e.target.value)}
                 className="w-full px-3 py-2 text-sm bg-surface border border-border-strong rounded-sm outline-none focus:border-accent"
               >
-                <option value="Espèces">Espèces (Cash)</option>
-                <option value="CB SumUp">Carte Bancaire (SumUp)</option>
-                <option value="Lydia / Paylib">Lydia / Paylib</option>
+                <option value="Cash">Cash</option>
+                <option value="Card (SumUp)">Card (SumUp / POS)</option>
+                <option value="Instant Transfer">Instant Transfer (Lydia / Revolut)</option>
               </select>
             </div>
           )}
@@ -115,13 +118,13 @@ export const SaleModal: React.FC<SaleModalProps> = ({
               onClick={onClose}
               className="px-4 py-1.5 text-xs font-semibold bg-surface border border-border-strong rounded-sm hover:bg-surface-subtle transition-all text-secondary"
             >
-              Annuler
+              Cancel
             </button>
             <button
               type="submit"
               className="px-4 py-1.5 text-xs font-bold bg-accent text-white rounded-sm hover:brightness-110 transition-all shadow-sm"
             >
-              Valider l'Encaissement
+              Confirm Sale
             </button>
           </div>
         </form>

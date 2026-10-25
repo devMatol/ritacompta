@@ -1,7 +1,7 @@
 {
-  "name": "Kozha — Luxe Vintage",
+  "name": "Kozha — Vintage Luxury",
   "short_name": "Kozha",
-  "description": "Application d'inventaire, comptabilité et rapprochement Vinted & Marchés",
+  "description": "Inventory, sales accounting and Vinted reconciliation app",
   "start_url": "/",
   "display": "standalone",
   "orientation": "portrait-primary",

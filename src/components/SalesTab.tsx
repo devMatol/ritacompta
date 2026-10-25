@@ -1,5 +1,6 @@
 import React from 'react';
 import { Sale } from '../types';
+import { Package } from 'lucide-react';
 
 interface SalesTabProps {
   sales: Sale[];
@@ -10,24 +11,24 @@ export const SalesTab: React.FC<SalesTabProps> = ({ sales }) => {
     <div className="bg-surface border border-border rounded-md p-6 shadow-sm">
       <div className="flex justify-between items-baseline border-b border-border pb-4 mb-5">
         <div>
-          <h2 className="font-heading text-xl font-bold text-primary">Journal des Pièces Vendues</h2>
+          <h2 className="font-heading text-xl font-bold text-primary">Sold Items Ledger</h2>
           <p className="text-xs text-secondary mt-0.5">
-            Historique certifié avec calcul de la marge nette (€ et %), du ROI et du délai d'écoulement.
+            Certified ledger with net margin calculation (€ and %), ROI, and turnover time.
           </p>
         </div>
         <span className="font-mono text-xs font-semibold text-tertiary">
-          {sales.length} Ventes Enregistrées
+          {sales.length} Recorded Sales
         </span>
       </div>
 
       {sales.length === 0 ? (
         <div className="py-12 text-center">
-          <div className="text-4xl mb-3">📜</div>
+          <Package size={40} className="mx-auto mb-3 text-secondary opacity-60" />
           <h3 className="font-heading text-lg font-bold text-primary mb-1">
-            Aucune vente clôturée pour le moment
+            No closed sales yet
           </h3>
           <p className="text-xs text-secondary max-w-sm mx-auto">
-            Dès que vous vendez une pièce sur Vinted ou sur un marché, enregistrez-la pour voir apparaître vos marges et votre ROI.
+            Once you sell an item on Vinted or in-person, record it to see your margins and ROI.
           </p>
         </div>
       ) : (
@@ -37,13 +38,13 @@ export const SalesTab: React.FC<SalesTabProps> = ({ sales }) => {
               <tr className="border-b border-border-strong bg-surface-subtle text-[11px] font-semibold uppercase tracking-wider text-secondary">
                 <th className="py-2.5 px-3">Date</th>
                 <th className="py-2.5 px-3 w-14">Photo</th>
-                <th className="py-2.5 px-3">Pièce Vendue</th>
-                <th className="py-2.5 px-3">Canal</th>
-                <th className="py-2.5 px-3">Prix Vendu Net</th>
-                <th className="py-2.5 px-3">Coût Achat</th>
-                <th className="py-2.5 px-3">Marge Nette (€)</th>
-                <th className="py-2.5 px-3">ROI (%)</th>
-                <th className="py-2.5 px-3">Délai Vente</th>
+                <th className="py-2.5 px-3">Item Sold</th>
+                <th className="py-2.5 px-3">Channel</th>
+                <th className="py-2.5 px-3">Sale Price</th>
+                <th className="py-2.5 px-3">Cost Price</th>
+                <th className="py-2.5 px-3">Net Margin</th>
+                <th className="py-2.5 px-3">ROI</th>
+                <th className="py-2.5 px-3">Time</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-border">
@@ -65,8 +66,8 @@ export const SalesTab: React.FC<SalesTabProps> = ({ sales }) => {
                           className="w-11 h-11 object-cover rounded-sm border border-border"
                         />
                       ) : (
-                        <div className="w-11 h-11 rounded-sm bg-surface-subtle border border-dashed border-border-strong flex items-center justify-center text-sm">
-                          ✓
+                        <div className="w-11 h-11 rounded-sm bg-surface-subtle border border-dashed border-border-strong flex items-center justify-center text-secondary">
+                          <Package size={14} />
                         </div>
                       )}
                     </td>
@@ -98,7 +99,7 @@ export const SalesTab: React.FC<SalesTabProps> = ({ sales }) => {
                       +{roi}%
                     </td>
                     <td className="py-3 px-3 font-mono text-xs text-accent font-semibold">
-                      {days} j
+                      {days}d
                     </td>
                   </tr>
                 );

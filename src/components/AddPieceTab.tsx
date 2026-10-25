@@ -1,7 +1,7 @@
 import React, { useState, useRef } from 'react';
 import { Item, VintedItem } from '../types';
 import { smartMatch } from '../services/matching';
-import { Camera, Image as ImageIcon, X } from 'lucide-react';
+import { Camera, X } from 'lucide-react';
 
 interface AddPieceTabProps {
   onAddItem: (item: Item) => void;
@@ -16,9 +16,9 @@ export const AddPieceTab: React.FC<AddPieceTabProps> = ({
 }) => {
   const [brand, setBrand] = useState('');
   const [title, setTitle] = useState('');
-  const [category, setCategory] = useState('Vestes & Manteaux');
+  const [category, setCategory] = useState('Jackets & Coats');
   const [size, setSize] = useState('M');
-  const [source, setSource] = useState('Marché aux puces');
+  const [source, setSource] = useState('Flea Market');
   const [purchasePrice, setPurchasePrice] = useState('');
   const [targetPrice, setTargetPrice] = useState('');
   const [photoBase64, setPhotoBase64] = useState<string>('');
@@ -74,9 +74,9 @@ export const AddPieceTab: React.FC<AddPieceTabProps> = ({
     // Instant Match feedback
     const match = smartMatch(newItem, vintedCatalog);
     if (match.matched) {
-      alert(`✓ Pièce enregistrée !\n💡 Le moteur intelligent a trouvé une annonce correspondante sur votre dressing Vinted : "${match.vintedItem?.title}" (${match.vintedItem?.price} €).`);
+      alert(`Item recorded successfully.\nSmart reconciliation found a matching listing on Vinted: "${match.vintedItem?.title}" (${match.vintedItem?.price} €).`);
     } else {
-      alert(`✓ Pièce enregistrée dans l'Archive !\n⚠️ Cette pièce n'a pas été trouvée sur votre vitrine Vinted (signalée comme "Manquante sur Vinted").`);
+      alert(`Item recorded into archive.\nThis piece was not found in your Vinted listings (flagged as "Not on Vinted").`);
     }
 
     // Reset
@@ -91,9 +91,9 @@ export const AddPieceTab: React.FC<AddPieceTabProps> = ({
   return (
     <div className="max-w-2xl mx-auto bg-surface border border-border rounded-md p-6 sm:p-8 shadow-sm">
       <div className="border-b border-border pb-4 mb-6">
-        <h2 className="font-heading text-2xl font-bold text-primary">Enregistrer un Achat Express</h2>
+        <h2 className="font-heading text-2xl font-bold text-primary">Record an Express Purchase</h2>
         <p className="text-xs text-secondary mt-1">
-          Prenez une photo de la pièce directement avec votre smartphone pour l'archiver au centime près.
+          Capture or upload a photo of the item to archive it with exact acquisition cost.
         </p>
       </div>
 
@@ -102,7 +102,7 @@ export const AddPieceTab: React.FC<AddPieceTabProps> = ({
         {/* Photo Upload Box */}
         <div>
           <label className="block text-xs uppercase tracking-wider font-semibold text-secondary mb-1.5">
-            Photo de la Pièce (Appareil photo / Fichier)
+            Item Photo (Camera / Upload)
           </label>
           <div
             onClick={() => fileInputRef.current?.click()}
@@ -120,11 +120,11 @@ export const AddPieceTab: React.FC<AddPieceTabProps> = ({
               <div className="flex items-center justify-center gap-4">
                 <img
                   src={photoBase64}
-                  alt="Aperçu"
+                  alt="Preview"
                   className="w-16 h-16 object-cover rounded-sm border border-border"
                 />
                 <div className="text-left">
-                  <div className="text-xs font-semibold text-primary">Photo prête pour l'archivage</div>
+                  <div className="text-xs font-semibold text-primary">Photo ready for archive</div>
                   <button
                     type="button"
                     onClick={(e) => {
@@ -135,7 +135,7 @@ export const AddPieceTab: React.FC<AddPieceTabProps> = ({
                     className="inline-flex items-center gap-1 text-[11px] text-danger hover:underline mt-1"
                   >
                     <X size={12} />
-                    <span>Supprimer la photo</span>
+                    <span>Remove photo</span>
                   </button>
                 </div>
               </div>
@@ -144,8 +144,8 @@ export const AddPieceTab: React.FC<AddPieceTabProps> = ({
                 <div className="flex justify-center gap-2 text-2xl mb-1 text-accent">
                   <Camera size={26} />
                 </div>
-                <div className="text-xs font-bold text-primary">Prendre une photo ou importer un fichier</div>
-                <div className="text-[11px] text-tertiary mt-0.5">Appareil photo smartphone, webcam ou glisser-déposer</div>
+                <div className="text-xs font-bold text-primary">Take a photo or upload an image</div>
+                <div className="text-[11px] text-tertiary mt-0.5">Smartphone camera, webcam or drag and drop</div>
               </div>
             )}
           </div>
@@ -154,12 +154,12 @@ export const AddPieceTab: React.FC<AddPieceTabProps> = ({
         {/* Brand */}
         <div>
           <label className="block text-xs uppercase tracking-wider font-semibold text-secondary mb-1.5">
-            Marque de Prestige
+            Brand
           </label>
           <input
             type="text"
             required
-            placeholder="ex: Dolce & Gabbana, Burberry, Céline, Yves Saint Laurent..."
+            placeholder="e.g. Dolce & Gabbana, Burberry, Céline, Yves Saint Laurent..."
             value={brand}
             onChange={(e) => setBrand(e.target.value)}
             className="w-full px-3 py-2 text-sm bg-surface border border-border-strong rounded-sm outline-none focus:border-accent"
@@ -182,12 +182,12 @@ export const AddPieceTab: React.FC<AddPieceTabProps> = ({
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <div>
             <label className="block text-xs uppercase tracking-wider font-semibold text-secondary mb-1.5">
-              Désignation / Modèle
+              Item Name / Model
             </label>
             <input
               type="text"
               required
-              placeholder="ex: Denim jacket 00s, Trench beige..."
+              placeholder="e.g. Denim jacket 00s, Beige trench coat..."
               value={title}
               onChange={(e) => setTitle(e.target.value)}
               className="w-full px-3 py-2 text-sm bg-surface border border-border-strong rounded-sm outline-none focus:border-accent"
@@ -196,22 +196,22 @@ export const AddPieceTab: React.FC<AddPieceTabProps> = ({
 
           <div>
             <label className="block text-xs uppercase tracking-wider font-semibold text-secondary mb-1.5">
-              Catégorie
+              Category
             </label>
             <select
               value={category}
               onChange={(e) => setCategory(e.target.value)}
               className="w-full px-3 py-2 text-sm bg-surface border border-border-strong rounded-sm outline-none focus:border-accent"
             >
-              <option value="Vestes & Manteaux">Vestes & Manteaux</option>
-              <option value="Sacs & Maroquinerie">Sacs & Maroquinerie</option>
-              <option value="Chaussures & Bottes">Chaussures & Bottes</option>
-              <option value="Jupes & Pantalons">Jupes & Pantalons</option>
-              <option value="Robes & Tailleurs">Robes & Tailleurs</option>
-              <option value="Foulards & Soieries">Foulards & Soieries</option>
-              <option value="Pulls & Cardigans">Pulls & Cardigans</option>
-              <option value="Tops & Chemises">Tops & Chemises</option>
-              <option value="Accessoires">Accessoires</option>
+              <option value="Jackets & Coats">Jackets & Coats</option>
+              <option value="Bags & Leather Goods">Bags & Leather Goods</option>
+              <option value="Shoes & Boots">Shoes & Boots</option>
+              <option value="Skirts & Trousers">Skirts & Trousers</option>
+              <option value="Dresses & Suits">Dresses & Suits</option>
+              <option value="Scarves & Silks">Scarves & Silks</option>
+              <option value="Knitwear & Sweaters">Knitwear & Sweaters</option>
+              <option value="Tops & Shirts">Tops & Shirts</option>
+              <option value="Accessories">Accessories</option>
             </select>
           </div>
         </div>
@@ -220,30 +220,30 @@ export const AddPieceTab: React.FC<AddPieceTabProps> = ({
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <div>
             <label className="block text-xs uppercase tracking-wider font-semibold text-secondary mb-1.5">
-              Taille
+              Size
             </label>
             <input
               type="text"
               value={size}
               onChange={(e) => setSize(e.target.value)}
-              placeholder="ex: M, 38, Unique..."
+              placeholder="e.g. M, 38, One Size..."
               className="w-full px-3 py-2 text-sm bg-surface border border-border-strong rounded-sm outline-none focus:border-accent"
             />
           </div>
 
           <div>
             <label className="block text-xs uppercase tracking-wider font-semibold text-secondary mb-1.5">
-              Source d'Achat
+              Acquisition Source
             </label>
             <select
               value={source}
               onChange={(e) => setSource(e.target.value)}
               className="w-full px-3 py-2 text-sm bg-surface border border-border-strong rounded-sm outline-none focus:border-accent"
             >
-              <option value="Marché aux puces">Marché aux puces / Brocante</option>
-              <option value="Vinted">Acheté sur Vinted</option>
-              <option value="Dépôt-Vente">Dépôt-Vente</option>
-              <option value="Particulier">Particulier / Succession</option>
+              <option value="Flea Market">Flea Market / Vintage Fair</option>
+              <option value="Vinted">Purchased on Vinted</option>
+              <option value="Consignment">Consignment Store</option>
+              <option value="Private Seller">Private Seller / Estate Sale</option>
             </select>
           </div>
         </div>
@@ -252,13 +252,13 @@ export const AddPieceTab: React.FC<AddPieceTabProps> = ({
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <div>
             <label className="block text-xs uppercase tracking-wider font-semibold text-secondary mb-1.5">
-              Prix Payé (€)
+              Purchase Cost (€)
             </label>
             <input
               type="number"
               step="0.5"
               required
-              placeholder="ex: 25"
+              placeholder="e.g. 25"
               value={purchasePrice}
               onChange={(e) => setPurchasePrice(e.target.value)}
               className="w-full px-3 py-2 font-mono text-sm bg-surface border border-border-strong rounded-sm outline-none focus:border-accent"
@@ -267,12 +267,12 @@ export const AddPieceTab: React.FC<AddPieceTabProps> = ({
 
           <div>
             <label className="block text-xs uppercase tracking-wider font-semibold text-secondary mb-1.5">
-              Prix de Vente Espéré (€)
+              Target Sale Price (€)
             </label>
             <input
               type="number"
               step="0.5"
-              placeholder="ex: 75"
+              placeholder="e.g. 75"
               value={targetPrice}
               onChange={(e) => setTargetPrice(e.target.value)}
               className="w-full px-3 py-2 font-mono text-sm bg-surface border border-border-strong rounded-sm outline-none focus:border-accent"
@@ -286,7 +286,7 @@ export const AddPieceTab: React.FC<AddPieceTabProps> = ({
             type="submit"
             className="px-5 py-2 text-xs font-bold uppercase tracking-wider bg-accent text-white rounded-sm hover:brightness-110 transition-all shadow-sm"
           >
-            Enregistrer dans l'Archive
+            Save to Archive
           </button>
         </div>
       </form>

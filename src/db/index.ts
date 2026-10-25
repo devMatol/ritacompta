@@ -1,13 +1,13 @@
 import Dexie, { type Table } from 'dexie';
 import { Item, Sale, VintedItem } from '../types';
 
-export class RitaDatabase extends Dexie {
+export class KozhaDatabase extends Dexie {
   items!: Table<Item, string>;
   sales!: Table<Sale, string>;
   vintedCatalog!: Table<VintedItem, string>;
 
   constructor() {
-    super('RitaComptaDB');
+    super('KozhaDB');
     this.version(1).stores({
       items: 'id, brand, title, category, purchaseDate',
       sales: 'id, brand, channel, saleDate',
@@ -16,23 +16,22 @@ export class RitaDatabase extends Dexie {
   }
 }
 
-export const db = new RitaDatabase();
+export const db = new KozhaDatabase();
 
-// Chargement automatique des 120 vrais articles du dressing de Rita
+// Load the 120 verified items from Rita's Vinted wardrobe
 export async function loadRealVintedDressing(): Promise<VintedItem[]> {
   try {
     const res = await fetch('/rita_vinted_dressing.json');
     if (!res.ok) return [];
     const items: VintedItem[] = await res.json();
     
-    // Mettre à jour la table vintedCatalog atomiquement
     await db.transaction('rw', db.vintedCatalog, async () => {
       await db.vintedCatalog.clear();
       await db.vintedCatalog.bulkPut(items);
     });
     return items;
   } catch (err) {
-    console.error('Erreur chargement dressing réel:', err);
+    console.error('Error loading Vinted wardrobe:', err);
     return [];
   }
 }
@@ -45,7 +44,7 @@ export async function initDatabase() {
       await loadRealVintedDressing();
     }
   } catch (e) {
-    console.error('Erreur initialisation DB:', e);
+    console.error('Database initialization error:', e);
   }
 }
 

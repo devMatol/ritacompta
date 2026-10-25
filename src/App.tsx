@@ -102,7 +102,7 @@ export const App: React.FC = () => {
 
     await db.items.delete(item.id);
     await db.sales.add(newSale);
-    setActiveTab('dashboard'); // Redirection vers le tableau de bord des ventes
+    setActiveTab('dashboard');
   };
 
   const handleBulkImportAll = async () => {
@@ -130,10 +130,10 @@ export const App: React.FC = () => {
 
     if (newItems.length > 0) {
       await db.items.bulkAdd(newItems);
-      alert(`✓ Succès !\nLes ${imported} articles réels de votre dressing Vinted ont été importés dans votre stock actif.\n\n⚠️ Leurs coûts d'achat sont initialement à 0 € : vous pourrez saisir vos vrais prix d'achat payés directement dans la liste d'inventaire.`);
+      alert(`Success!\nAll ${imported} verified items from Rita's Vinted wardrobe were imported into your active stock.\n\nNote: Initial purchase costs are set to 0 € by default. You can input your actual paid purchase prices directly in the inventory view.`);
       setActiveTab('inventory');
     } else {
-      alert("Toutes les pièces de son dressing sont déjà présentes dans votre inventaire !");
+      alert("All items from this wardrobe are already in your inventory.");
     }
   };
 
@@ -143,7 +143,7 @@ export const App: React.FC = () => {
 
   const handleQuickAddVintedToCompta = async (vnt: VintedItem) => {
     const costStr = prompt(
-      `Entrez votre prix d'achat réel pour "${vnt.brand} - ${vnt.title}" (€) :\n(Laissez vide si vous souhaitez le renseigner plus tard)`,
+      `Enter your actual purchase price for "${vnt.brand} - ${vnt.title}" (€):\n(Leave empty to fill it in later)`,
       "0"
     );
     if (costStr === null) return;
@@ -163,25 +163,25 @@ export const App: React.FC = () => {
     };
 
     await db.items.add(newItem);
-    alert(`✓ ${vnt.brand} ajouté à votre inventaire avec un coût d'achat réel de ${cost} € !`);
+    alert(`${vnt.brand} added to inventory with an actual purchase cost of ${cost} €.`);
   };
 
   const guessCategory = (title: string) => {
     const t = title.toLowerCase();
-    if (t.includes('jacket') || t.includes('veste') || t.includes('blazer') || t.includes('bolero') || t.includes('coat') || t.includes('poncho') || t.includes('cape')) return "Vestes & Manteaux";
-    if (t.includes('boots') || t.includes('heels') || t.includes('loafers') || t.includes('sneakers') || t.includes('chaussures')) return "Chaussures & Bottes";
-    if (t.includes('dress') || t.includes('robe') || t.includes('suit') || t.includes('tailleur')) return "Robes & Tailleurs";
-    if (t.includes('skirt') || t.includes('jupe') || t.includes('trousers') || t.includes('joggers') || t.includes('pantalon')) return "Jupes & Pantalons";
-    if (t.includes('cardigan') || t.includes('jumper') || t.includes('pull') || t.includes('hoodie')) return "Pulls & Cardigans";
-    if (t.includes('bag') || t.includes('sac')) return "Sacs & Maroquinerie";
-    if (t.includes('gloves') || t.includes('gants') || t.includes('foulard') || t.includes('scarf') || t.includes('belt') || t.includes('ceinture') || t.includes('hat') || t.includes('chapeau')) return "Accessoires";
-    return "Tops & Chemises";
+    if (t.includes('jacket') || t.includes('veste') || t.includes('blazer') || t.includes('bolero') || t.includes('coat') || t.includes('poncho') || t.includes('cape')) return "Jackets & Coats";
+    if (t.includes('boots') || t.includes('heels') || t.includes('loafers') || t.includes('sneakers') || t.includes('chaussures')) return "Shoes & Boots";
+    if (t.includes('dress') || t.includes('robe') || t.includes('suit') || t.includes('tailleur')) return "Dresses & Suits";
+    if (t.includes('skirt') || t.includes('jupe') || t.includes('trousers') || t.includes('joggers') || t.includes('pantalon')) return "Skirts & Trousers";
+    if (t.includes('cardigan') || t.includes('jumper') || t.includes('pull') || t.includes('hoodie')) return "Knitwear & Sweaters";
+    if (t.includes('bag') || t.includes('sac')) return "Bags & Leather Goods";
+    if (t.includes('gloves') || t.includes('gants') || t.includes('foulard') || t.includes('scarf') || t.includes('belt') || t.includes('ceinture') || t.includes('hat') || t.includes('chapeau')) return "Accessories";
+    return "Tops & Shirts";
   };
 
   return (
     <div className="min-h-screen flex flex-col bg-canvas text-primary">
       
-      {/* Header avec Menu Burger Mobile intégré & Bouton Installer PWA */}
+      {/* Header with Mobile Burger Menu & PWA Install Button */}
       <Header
         activeTab={activeTab}
         onTabChange={setActiveTab}
@@ -204,7 +204,7 @@ export const App: React.FC = () => {
                 : 'border-transparent text-secondary hover:text-primary'
             }`}
           >
-            <span>🧥 Inventaire Actif</span>
+            <span>Active Inventory</span>
             <span className="font-mono text-xs px-1.5 py-0.2 bg-surface-elevated text-secondary rounded-full">
               {items.length}
             </span>
@@ -217,9 +217,9 @@ export const App: React.FC = () => {
                 : 'border-transparent text-secondary hover:text-primary'
             }`}
           >
-            <span>🤝 Rapprochement Vinted</span>
+            <span>Vinted Sync</span>
             <span className="font-mono text-xs px-2 py-0.2 bg-profit-soft text-profit rounded-full font-bold">
-              {vintedCatalog.length} en ligne
+              {vintedCatalog.length} listed
             </span>
           </button>
           <button
@@ -230,7 +230,7 @@ export const App: React.FC = () => {
                 : 'border-transparent text-secondary hover:text-primary'
             }`}
           >
-            ➕ Saisie Express (+ Photo)
+            Quick Add (+ Photo)
           </button>
           <button
             onClick={() => setActiveTab('dashboard')}
@@ -240,7 +240,7 @@ export const App: React.FC = () => {
                 : 'border-transparent text-secondary hover:text-primary'
             }`}
           >
-            <span>📊 Tableau de Bord</span>
+            <span>Sales Dashboard</span>
             {sales.length > 0 && (
               <span className="font-mono text-xs px-2 py-0.2 bg-surface-elevated text-secondary rounded-full">
                 {sales.length}

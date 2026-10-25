@@ -4,7 +4,7 @@ export interface Item {
   title: string;
   category: string;
   size: string;
-  source: 'Marché aux puces' | 'Vinted' | 'Dépôt-Vente' | 'Particulier' | string;
+  source: 'Flea Market' | 'Vinted' | 'Consignment' | 'Private Seller' | string;
   purchasePrice: number;
   targetPrice: number;
   photo?: string;
@@ -17,7 +17,7 @@ export interface Sale {
   itemId?: string;
   brand: string;
   title: string;
-  channel: 'Vinted' | 'Marché' | 'Direct' | string;
+  channel: 'Vinted' | 'Flea Market' | 'Direct' | 'Instagram' | string;
   salePrice: number;
   purchasePrice: number;
   photo?: string;

@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { Item, VintedItem } from '../types';
 import { smartMatch } from '../services/matching';
-import { Search, Plus } from 'lucide-react';
+import { Search, Plus, Package } from 'lucide-react';
 
 interface InventoryTabProps {
   items: Item[];
@@ -35,9 +35,9 @@ export const InventoryTab: React.FC<InventoryTabProps> = ({
     <div className="bg-surface border border-border rounded-md p-6 shadow-sm">
       <div className="flex flex-wrap justify-between items-center gap-4 border-b border-border pb-4 mb-5">
         <div>
-          <h2 className="font-heading text-xl font-bold text-primary">Pièces en Stock Actif</h2>
+          <h2 className="font-heading text-xl font-bold text-primary">Active Inventory Items</h2>
           <p className="text-xs text-secondary mt-0.5">
-            Chaque pièce est analysée en temps réel par le moteur intelligent de rapprochement Vinted.
+            Every piece is analyzed in real time by the smart Vinted reconciliation engine.
           </p>
         </div>
         <button
@@ -45,24 +45,24 @@ export const InventoryTab: React.FC<InventoryTabProps> = ({
           className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold bg-primary text-canvas rounded-sm hover:opacity-90 transition-all"
         >
           <Plus size={14} />
-          <span>Acheter une pièce</span>
+          <span>Add Purchase</span>
         </button>
       </div>
 
       {items.length === 0 ? (
         <div className="py-12 text-center">
-          <div className="text-4xl mb-3">🧥</div>
+          <Package size={40} className="mx-auto mb-3 text-secondary opacity-60" />
           <h3 className="font-heading text-lg font-bold text-primary mb-1">
-            Votre inventaire est vide
+            Your inventory is empty
           </h3>
           <p className="text-xs text-secondary max-w-sm mx-auto mb-5">
-            Aucun vêtement en stock. Enregistrez votre premier achat avec photo ou importez vos articles Vinted réels.
+            No items in stock. Record your first purchase with photo or import your verified Vinted wardrobe.
           </p>
           <button
             onClick={onNavigateAdd}
             className="px-4 py-2 text-xs font-bold uppercase tracking-wider bg-accent text-white rounded-sm hover:brightness-110 transition-all"
           >
-            + Enregistrer un vêtement
+            + Record an Item
           </button>
         </div>
       ) : (
@@ -73,7 +73,7 @@ export const InventoryTab: React.FC<InventoryTabProps> = ({
               <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-tertiary" />
               <input
                 type="text"
-                placeholder="Rechercher par marque ou modèle..."
+                placeholder="Search by brand or model..."
                 value={search}
                 onChange={e => setSearch(e.target.value)}
                 className="w-full pl-9 pr-3 py-1.5 text-xs bg-surface border border-border-strong rounded-sm outline-none focus:border-accent"
@@ -87,7 +87,7 @@ export const InventoryTab: React.FC<InventoryTabProps> = ({
             >
               {categories.map(cat => (
                 <option key={cat} value={cat}>
-                  {cat === 'ALL' ? 'Toutes les Catégories' : cat}
+                  {cat === 'ALL' ? 'All Categories' : cat}
                 </option>
               ))}
             </select>
@@ -99,13 +99,13 @@ export const InventoryTab: React.FC<InventoryTabProps> = ({
               <thead>
                 <tr className="border-b border-border-strong bg-surface-subtle text-[11px] font-semibold uppercase tracking-wider text-secondary">
                   <th className="py-2.5 px-3 w-14">Photo</th>
-                  <th className="py-2.5 px-3">Réf.</th>
-                  <th className="py-2.5 px-3">Pièce & Marque</th>
-                  <th className="py-2.5 px-3">Taille</th>
-                  <th className="py-2.5 px-3">Coût Achat</th>
-                  <th className="py-2.5 px-3">Cote Cible</th>
-                  <th className="py-2.5 px-3">Marge Potentielle</th>
-                  <th className="py-2.5 px-3">Statut Vinted</th>
+                  <th className="py-2.5 px-3">Ref.</th>
+                  <th className="py-2.5 px-3">Item & Brand</th>
+                  <th className="py-2.5 px-3">Size</th>
+                  <th className="py-2.5 px-3">Cost Price</th>
+                  <th className="py-2.5 px-3">Target Price</th>
+                  <th className="py-2.5 px-3">Est. Margin</th>
+                  <th className="py-2.5 px-3">Vinted Status</th>
                   <th className="py-2.5 px-3 text-right">Action</th>
                 </tr>
               </thead>
@@ -124,8 +124,8 @@ export const InventoryTab: React.FC<InventoryTabProps> = ({
                             className="w-11 h-11 object-cover rounded-sm border border-border"
                           />
                         ) : (
-                          <div className="w-11 h-11 rounded-sm bg-surface-subtle border border-dashed border-border-strong flex items-center justify-center text-sm">
-                            🧥
+                          <div className="w-11 h-11 rounded-sm bg-surface-subtle border border-dashed border-border-strong flex items-center justify-center text-secondary">
+                            <Package size={16} />
                           </div>
                         )}
                       </td>
@@ -145,23 +145,23 @@ export const InventoryTab: React.FC<InventoryTabProps> = ({
                             <span className="font-mono text-xs font-bold text-primary">{item.purchasePrice} €</span>
                             <button
                               onClick={() => {
-                                const p = prompt(`Modifier le prix d'achat pour ${item.title} (€) :`, String(item.purchasePrice));
+                                const p = prompt(`Edit purchase cost for ${item.title} (€):`, String(item.purchasePrice));
                                 if (p !== null && !isNaN(parseFloat(p))) onUpdatePurchasePrice(item.id, parseFloat(p));
                               }}
                               className="text-[10px] text-tertiary hover:text-accent hover:underline"
                             >
-                              éditer
+                              edit
                             </button>
                           </div>
                         ) : (
                           <button
                             onClick={() => {
-                              const p = prompt(`Quel est votre prix d'achat réel pour "${item.title}" (€) ?`);
+                              const p = prompt(`What is your actual purchase price for "${item.title}" (€)?`);
                               if (p !== null && !isNaN(parseFloat(p))) onUpdatePurchasePrice(item.id, parseFloat(p));
                             }}
                             className="inline-flex items-center gap-1 text-[11px] font-semibold text-warning bg-warning-soft border border-warning/30 px-2 py-0.5 rounded-sm hover:brightness-95 transition-all"
                           >
-                            ⚠️ Saisir prix payé
+                            Set cost price
                           </button>
                         )}
                       </td>
@@ -172,23 +172,25 @@ export const InventoryTab: React.FC<InventoryTabProps> = ({
                         {item.purchasePrice > 0 ? (
                           <span className="text-profit">+{potentialMargin} €</span>
                         ) : (
-                          <span className="text-tertiary text-[11px] italic font-normal">Coût requis</span>
+                          <span className="text-tertiary text-[11px] italic font-normal">Cost needed</span>
                         )}
                       </td>
                       <td className="py-3 px-3">
                         {match.matched ? (
                           <span
-                            className="inline-flex items-center gap-1 text-[11px] font-semibold text-profit bg-profit-soft border border-profit/25 px-2 py-0.5 rounded-sm whitespace-nowrap"
-                            title={`Lié à l'annonce Vinted : ${match.vintedItem?.title}`}
+                            className="inline-flex items-center gap-1.5 text-[11px] font-semibold text-profit bg-profit-soft border border-profit/25 px-2 py-0.5 rounded-sm whitespace-nowrap"
+                            title={`Linked to Vinted listing: ${match.vintedItem?.title}`}
                           >
-                            ✓ En ligne Vinted ({match.vintedItem?.price} €)
+                            <span className="w-1.5 h-1.5 rounded-full bg-profit"></span>
+                            <span>Listed on Vinted ({match.vintedItem?.price} €)</span>
                           </span>
                         ) : (
                           <span
-                            className="inline-flex items-center gap-1 text-[11px] font-semibold text-warning bg-warning-soft border border-warning/30 px-2 py-0.5 rounded-sm whitespace-nowrap"
-                            title="Aucune annonce correspondante trouvée sur le profil Vinted"
+                            className="inline-flex items-center gap-1.5 text-[11px] font-semibold text-warning bg-warning-soft border border-warning/30 px-2 py-0.5 rounded-sm whitespace-nowrap"
+                            title="No matching listing found on Vinted profile"
                           >
-                            ⚠️ Manquante sur Vinted
+                            <span className="w-1.5 h-1.5 rounded-full bg-warning"></span>
+                            <span>Not on Vinted</span>
                           </span>
                         )}
                       </td>
@@ -197,7 +199,7 @@ export const InventoryTab: React.FC<InventoryTabProps> = ({
                           onClick={() => onOpenSaleModal(item)}
                           className="px-2.5 py-1 text-xs font-semibold bg-accent text-white rounded-sm hover:brightness-110 transition-all"
                         >
-                          Vendre
+                          Sell
                         </button>
                       </td>
                     </tr>

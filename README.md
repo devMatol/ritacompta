@@ -1,69 +1,69 @@
-# Kozha — Luxe Vintage 🧥✨
+# Kozha — Vintage Luxury
 
-Application web mobile-first & PWA sur-mesure pour la gestion d'inventaire, le rapprochement de catalogue Vinted et la comptabilité des ventes de pièces de luxe vintage.
+Mobile-first web application and PWA for luxury vintage fashion resellers. Features individual piece tracking, real-time Vinted wardrobe reconciliation, and sales accounting.
 
-Développée pour le dressing de Rita ([@nuzhdina.ri](https://www.vinted.fr/member/68815764-nuzhdinari)).
-
----
-
-## ✨ Fonctionnalités Clés
-
-- **🧥 Inventaire Actif & Suivi à la Pièce :**
-  - Traçabilité individuelle de chaque pièce vintage (aucun lot en vrac).
-  - Statut de rapprochement Vinted en temps réel (Pastille verte *En ligne Vinted* ou orange *Non rapprochée / Marché seul*).
-  - Saisie rapide et modification du vrai prix d'achat payé (`0 €` / non renseigné par défaut, aucune donnée inventée).
-  - Vente express en 1 clic (Vinted, Marché aux Puces, Instagram, Pop-up).
-
-- **🤝 Synchronisation & Rapprochement Vinted Intelligent :**
-  - Moteur de rapprochement flou (fuzzy matching sur titres, marques et catégories).
-  - Intégration des **120 pièces réelles** du dressing de Rita avec photos officielles Vinted et prix affichés.
-  - Bouton d'importation globale dans l'inventaire en 1 clic.
-
-- **➕ Saisie Express Mobile (+ Capture Photo) :**
-  - Prise de vue directe avec l'appareil photo du smartphone ou import de galerie.
-  - Détection automatique de la correspondance dans le dressing Vinted dès la frappe du titre.
-  - Pré-remplissage automatique des catégories, prix conseillés et marques.
-
-- **📊 Tableau de Bord des Ventes Dédié :**
-  - Métriques clés : Chiffre d'Affaires total, Marge Nette réelle, ROI global.
-  - Comparatif des canaux de vente (Vinted vs Marchés / Direct).
-  - Classement des marques les plus rentables.
-  - Grand livre des ventes détaillées avec date, marge et mode de paiement.
-
-- **📲 Installation PWA (Progressive Web App) :**
-  - Installable directement sur iPhone (Safari > *Sur l'écran d'accueil*) et Android / PC.
-  - Fonctionne hors-ligne sur les marchés grâce au Service Worker et au stockage local IndexedDB.
-  - Menu burger responsive et ergonomie pensée pour l'utilisation à une main sur smartphone.
+Built for Rita's vintage archive ([@nuzhdina.ri](https://www.vinted.fr/member/68815764-nuzhdinari)).
 
 ---
 
-## 🛠️ Stack Technique
+## Core Features
 
-- **Framework :** React 18 + TypeScript + Vite
-- **Base de Données Locale :** Dexie.js (IndexedDB persistant et réactif)
-- **Design System :** Tailwind CSS — Direction artistique *Hôtel Drouot* (Cognac `#966A38`, papier d'archive `#F5F1EA`, Space Grotesk)
-- **Icônes :** Lucide React
-- **PWA :** Web App Manifest, Service Worker offline, Icônes multi-résolutions
+- **Active Inventory & Piece-by-Piece Tracking:**
+  - Individual piece traceability (no bulk lots).
+  - Real-time Vinted listing match indicator (Online on Vinted vs Unmatched / In-person only).
+  - Explicit purchase cost entry (0 EUR / unset by default; zero mock or invented data).
+  - 1-click express sale modal (Vinted, Flea Market, Pop-up, Direct).
+
+- **Intelligent Vinted Synchronization & Reconciliation:**
+  - Fuzzy matching algorithm on titles, brands, and categories.
+  - Direct integration with 120 verified pieces from Rita's public wardrobe with official photos and listing prices.
+  - 1-click bulk import into active stock.
+
+- **Mobile Express Purchase Entry (+ Photo Capture):**
+  - Smartphone camera capture or photo gallery upload.
+  - Automatic suggestion and detection of matching wardrobe listings while typing.
+  - Auto-filling of suggested categories, brands, and price targets.
+
+- **Dedicated Sales Accounting Dashboard:**
+  - Key financial metrics: Total Revenue, Realized Net Margin, Overall ROI.
+  - Sales channel comparison (Vinted vs Flea Markets / In-person).
+  - Top brands ranking by profitability.
+  - Certified detailed sales ledger with turnover duration and payment methods.
+
+- **Progressive Web App (PWA):**
+  - Installable directly on iOS (Safari > "Add to Home Screen"), Android (Chrome), and Desktop.
+  - Offline mode support for flea markets and trade shows via Service Worker and IndexedDB.
+  - Responsive mobile burger navigation designed for single-hand mobile usage.
 
 ---
 
-## 🚀 Démarrage Rapide
+## Technical Stack
+
+- **Framework:** React 18 + TypeScript + Vite
+- **Local Database:** Dexie.js (Reactive IndexedDB)
+- **Design System:** Tailwind CSS — Hôtel Drouot aesthetic (Cognac `#966A38`, archival canvas `#F5F1EA`, Space Grotesk typography)
+- **Icons:** Lucide React
+- **PWA:** Web App Manifest, offline Service Worker, multi-resolution icons
+
+---
+
+## Quick Start
 
 ```bash
-# Installer les dépendances
+# Install dependencies
 npm install
 
-# Lancer le serveur local
+# Start development server
 npm run dev
 
-# Compiler pour la production
+# Build for production
 npm run build
 ```
 
 ---
 
-## 📱 Utilisation Mobile (Sur le même réseau Wi-Fi)
+## Mobile Usage (Same Wi-Fi Network)
 
-1. Lancez `npm run dev -- --host`.
-2. Ouvrez l'adresse IP locale affichée (ex: `http://192.168.1.115:3000`) sur le navigateur de votre smartphone.
-3. Touchez **« Installer l'application »** pour l'ajouter à votre écran d'accueil comme une application native.
+1. Run `npm run dev -- --host`.
+2. Open the local IP address (e.g. `http://192.168.1.115:3000`) on your mobile browser.
+3. Tap **"Install on Device"** to add Kozha to your home screen as a standalone app.
