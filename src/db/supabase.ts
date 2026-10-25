@@ -1,7 +1,11 @@
 import { createClient, SupabaseClient } from '@supabase/supabase-js';
 import { Item, Sale, VintedItem } from '../types';
 
-// Read config from Vite env or localStorage override
+// Default live Supabase credentials for Kozha (Organization: LumisWeb, Paris eu-west-3)
+const DEFAULT_SUPABASE_URL = 'https://sxyygtonjhywltoieegd.supabase.co';
+const DEFAULT_SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InN4eXlndG9uamh5d2x0b2llZWdkIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTI5NTA5ODIsImV4cCI6MjEwODUyNjk4Mn0.UW4Q-5s_ejiAUiPDvFP-a14P5-Jv-BYudOK8mdNH754';
+
+// Read config from Vite env, localStorage override, or default project
 export function getSupabaseConfig() {
   const envUrl = import.meta.env.VITE_SUPABASE_URL || '';
   const envKey = import.meta.env.VITE_SUPABASE_ANON_KEY || '';
@@ -9,8 +13,8 @@ export function getSupabaseConfig() {
   const localUrl = typeof window !== 'undefined' ? localStorage.getItem('kozha_supabase_url') || '' : '';
   const localKey = typeof window !== 'undefined' ? localStorage.getItem('kozha_supabase_key') || '' : '';
 
-  const url = localUrl || envUrl;
-  const key = localKey || envKey;
+  const url = localUrl || envUrl || DEFAULT_SUPABASE_URL;
+  const key = localKey || envKey || DEFAULT_SUPABASE_ANON_KEY;
 
   return { url, key, isConfigured: Boolean(url && key) };
 }
