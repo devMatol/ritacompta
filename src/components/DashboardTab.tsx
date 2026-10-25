@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Sale } from '../types';
-import { TrendingUp, ShoppingBag, DollarSign, Clock, Store, Globe, Search, Filter, BarChart3, Package } from 'lucide-react';
+import { TrendingUp, ShoppingBag, DollarSign, Clock, Store, Globe, Search, Filter, Package } from 'lucide-react';
 
 interface DashboardTabProps {
   sales: Sale[];
@@ -10,28 +10,6 @@ interface DashboardTabProps {
 export const DashboardTab: React.FC<DashboardTabProps> = ({ sales, onNavigateAdd }) => {
   const [salesSearch, setSalesSearch] = useState('');
   const [channelFilter, setChannelFilter] = useState<'ALL' | 'Vinted' | 'Flea Market' | 'Direct'>('ALL');
-
-  if (sales.length === 0) {
-    return (
-      <div className="bg-surface border border-border rounded-md p-10 text-center shadow-sm">
-        <div className="w-16 h-16 rounded-full bg-surface-subtle border border-border flex items-center justify-center mx-auto mb-4 text-secondary">
-          <BarChart3 size={28} />
-        </div>
-        <h2 className="font-heading text-2xl font-bold text-primary mb-2">
-          Sales Dashboard
-        </h2>
-        <p className="text-xs text-secondary max-w-md mx-auto mb-6">
-          No sales recorded yet. As soon as you record a sale (on Vinted or in-person), this tab will display your key metrics, net margin, channel comparison, and sales ledger.
-        </p>
-        <button
-          onClick={onNavigateAdd}
-          className="px-5 py-2.5 text-xs font-bold uppercase tracking-wider bg-accent text-white rounded-sm hover:brightness-110 transition-all shadow-sm"
-        >
-          + Record an Item in Stock
-        </button>
-      </div>
-    );
-  }
 
   // Financial calculations
   const totalTurnover = sales.reduce((acc, s) => acc + Number(s.salePrice), 0);
@@ -202,32 +180,38 @@ export const DashboardTab: React.FC<DashboardTabProps> = ({ sales, onNavigateAdd
             <span className="font-mono text-xs uppercase tracking-wider text-tertiary">Net Profit</span>
           </div>
 
-          <div className="divide-y divide-border">
-            {sortedBrands.slice(0, 5).map((b, idx) => {
-              const avgD = Math.round(b.totalDays / b.count);
-              return (
-                <div key={b.name} className="py-3 flex items-center justify-between">
-                  <div className="flex items-center gap-3">
-                    <span className="font-mono text-sm font-bold text-accent w-7">
-                      #0{idx + 1}
-                    </span>
-                    <div>
-                      <div className="font-heading font-bold text-base text-primary">{b.name}</div>
-                      <div className="text-xs text-secondary">
-                        {b.count} piece(s) · Avg sell time: {avgD}d
+          {sortedBrands.length === 0 ? (
+            <div className="py-8 text-center text-xs text-secondary">
+              No brand sales data recorded yet.
+            </div>
+          ) : (
+            <div className="divide-y divide-border">
+              {sortedBrands.slice(0, 5).map((b, idx) => {
+                const avgD = Math.round(b.totalDays / b.count);
+                return (
+                  <div key={b.name} className="py-3 flex items-center justify-between">
+                    <div className="flex items-center gap-3">
+                      <span className="font-mono text-sm font-bold text-accent w-7">
+                        #0{idx + 1}
+                      </span>
+                      <div>
+                        <div className="font-heading font-bold text-base text-primary">{b.name}</div>
+                        <div className="text-xs text-secondary">
+                          {b.count} piece(s) · Avg sell time: {avgD}d
+                        </div>
                       </div>
                     </div>
+                    <div className="text-right">
+                      <div className="font-mono font-bold text-profit text-base">+{b.margin} €</div>
+                      <span className="font-mono text-[11px] text-profit bg-profit-soft px-1.5 py-0.5 rounded-sm">
+                        {avgD <= 7 ? 'Fast Moving' : 'Steady'}
+                      </span>
+                    </div>
                   </div>
-                  <div className="text-right">
-                    <div className="font-mono font-bold text-profit text-base">+{b.margin} €</div>
-                    <span className="font-mono text-[11px] text-profit bg-profit-soft px-1.5 py-0.5 rounded-sm">
-                      {avgD <= 7 ? 'Fast Moving' : 'Steady'}
-                    </span>
-                  </div>
-                </div>
-              );
-            })}
-          </div>
+                );
+              })}
+            </div>
+          )}
         </div>
 
         {/* Fastest Sold Pieces */}
@@ -240,24 +224,30 @@ export const DashboardTab: React.FC<DashboardTabProps> = ({ sales, onNavigateAdd
             Items that sold fastest along with realized profitability:
           </p>
 
-          <div className="divide-y divide-border">
-            {fastSales.map(item => (
-              <div key={item.id} className="py-3 flex items-center justify-between">
-                <div>
-                  <div className="font-heading font-bold text-base text-primary">
-                    {item.brand} — {item.title}
+          {fastSales.length === 0 ? (
+            <div className="py-8 text-center text-xs text-secondary">
+              No turnover data available yet.
+            </div>
+          ) : (
+            <div className="divide-y divide-border">
+              {fastSales.map(item => (
+                <div key={item.id} className="py-3 flex items-center justify-between">
+                  <div>
+                    <div className="font-heading font-bold text-base text-primary">
+                      {item.brand} — {item.title}
+                    </div>
+                    <div className="text-xs text-secondary">
+                      Bought {item.purchasePrice} € &rarr; Sold {item.salePrice} € ({item.channel})
+                    </div>
                   </div>
-                  <div className="text-xs text-secondary">
-                    Bought {item.purchasePrice} € &rarr; Sold {item.salePrice} € ({item.channel})
+                  <div className="text-right">
+                    <div className="font-mono font-bold text-profit">+{item.margin} €</div>
+                    <div className="font-mono text-xs text-accent">Sold in {item.days}d</div>
                   </div>
                 </div>
-                <div className="text-right">
-                  <div className="font-mono font-bold text-profit">+{item.margin} €</div>
-                  <div className="font-mono text-xs text-accent">Sold in {item.days}d</div>
-                </div>
-              </div>
-            ))}
-          </div>
+              ))}
+            </div>
+          )}
         </div>
 
       </div>
@@ -321,62 +311,70 @@ export const DashboardTab: React.FC<DashboardTabProps> = ({ sales, onNavigateAdd
               </tr>
             </thead>
             <tbody className="divide-y divide-border">
-              {filteredSales.map(sale => {
-                const margin = sale.salePrice - sale.purchasePrice;
-                const roi = sale.purchasePrice > 0 ? Math.round((margin / sale.purchasePrice) * 100) : 0;
-                const days = Math.max(1, Math.round((new Date(sale.saleDate).getTime() - new Date(sale.purchaseDate).getTime()) / (1000 * 60 * 60 * 24)));
+              {filteredSales.length === 0 ? (
+                <tr>
+                  <td colSpan={9} className="py-8 text-center text-xs text-secondary">
+                    No sales recorded yet. Once an item is sold, it will be listed in this ledger.
+                  </td>
+                </tr>
+              ) : (
+                filteredSales.map(sale => {
+                  const margin = sale.salePrice - sale.purchasePrice;
+                  const roi = sale.purchasePrice > 0 ? Math.round((margin / sale.purchasePrice) * 100) : 0;
+                  const days = Math.max(1, Math.round((new Date(sale.saleDate).getTime() - new Date(sale.purchaseDate).getTime()) / (1000 * 60 * 60 * 24)));
 
-                return (
-                  <tr key={sale.id} className="hover:bg-surface-subtle transition-colors">
-                    <td className="py-3 px-3 font-mono text-xs text-tertiary">
-                      {sale.saleDate}
-                    </td>
-                    <td className="py-3 px-3">
-                      {sale.photo ? (
-                        <img
-                          src={sale.photo}
-                          alt={sale.title}
-                          className="w-11 h-11 object-cover rounded-sm border border-border"
-                        />
-                      ) : (
-                        <div className="w-11 h-11 rounded-sm bg-surface-subtle border border-dashed border-border-strong flex items-center justify-center text-secondary">
-                          <Package size={14} />
-                        </div>
-                      )}
-                    </td>
-                    <td className="py-3 px-3">
-                      <div className="font-heading font-bold text-sm text-primary">{sale.brand}</div>
-                      <div className="text-xs text-secondary">{sale.title}</div>
-                    </td>
-                    <td className="py-3 px-3">
-                      <span
-                        className={`inline-flex items-center text-[11px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-sm ${
-                          sale.channel === 'Vinted'
-                            ? 'bg-accent-soft text-accent border border-accent/25'
-                            : 'bg-profit-soft text-profit border border-profit/25'
-                        }`}
-                      >
-                        {sale.channel}
-                      </span>
-                    </td>
-                    <td className="py-3 px-3 font-mono text-xs font-bold text-primary">
-                      {sale.salePrice} €
-                    </td>
-                    <td className="py-3 px-3 font-mono text-xs text-secondary">
-                      {sale.purchasePrice} €
-                    </td>
-                    <td className="py-3 px-3 font-mono text-xs font-bold text-profit">
-                      +{margin} €
-                    </td>
-                    <td className="py-3 px-3 font-mono text-xs text-profit font-semibold">
-                      +{roi}%
-                    </td>
-                    <td className="py-3 px-3 font-mono text-xs text-accent font-semibold">
-                      {days}d
-                    </td>
-                  </tr>
-                );
-              })}
+                  return (
+                    <tr key={sale.id} className="hover:bg-surface-subtle transition-colors">
+                      <td className="py-3 px-3 font-mono text-xs text-tertiary">
+                        {sale.saleDate}
+                      </td>
+                      <td className="py-3 px-3">
+                        {sale.photo ? (
+                          <img
+                            src={sale.photo}
+                            alt={sale.title}
+                            className="w-11 h-11 object-cover rounded-sm border border-border"
+                          />
+                        ) : (
+                          <div className="w-11 h-11 rounded-sm bg-surface-subtle border border-dashed border-border-strong flex items-center justify-center text-secondary">
+                            <Package size={14} />
+                          </div>
+                        )}
+                      </td>
+                      <td className="py-3 px-3">
+                        <div className="font-heading font-bold text-sm text-primary">{sale.brand}</div>
+                        <div className="text-xs text-secondary">{sale.title}</div>
+                      </td>
+                      <td className="py-3 px-3">
+                        <span
+                          className={`inline-flex items-center text-[11px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-sm ${
+                            sale.channel === 'Vinted'
+                              ? 'bg-accent-soft text-accent border border-accent/25'
+                              : 'bg-profit-soft text-profit border border-profit/25'
+                          }`}
+                        >
+                          {sale.channel}
+                        </span>
+                      </td>
+                      <td className="py-3 px-3 font-mono text-xs font-bold text-primary">
+                        {sale.salePrice} €
+                      </td>
+                      <td className="py-3 px-3 font-mono text-xs text-secondary">
+                        {sale.purchasePrice} €
+                      </td>
+                      <td className="py-3 px-3 font-mono text-xs font-bold text-profit">
+                        +{margin} €
+                      </td>
+                      <td className="py-3 px-3 font-mono text-xs text-profit font-semibold">
+                        +{roi}%
+                      </td>
+                      <td className="py-3 px-3 font-mono text-xs text-accent font-semibold">
+                        {days}d
+                      </td>
+                    </tr>
+                  );
+                })
+              )}
             </tbody>
           </table>
         </div>

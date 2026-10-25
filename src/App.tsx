@@ -401,11 +401,9 @@ export const App: React.FC = () => {
             }`}
           >
             <span>Sales Dashboard</span>
-            {sales.length > 0 && (
-              <span className="font-mono text-xs px-2 py-0.2 bg-surface-elevated text-secondary rounded-full">
-                {sales.length}
-              </span>
-            )}
+            <span className="font-mono text-xs px-2 py-0.2 bg-surface-elevated text-secondary rounded-full">
+              {sales.length}
+            </span>
           </button>
         </nav>
 
