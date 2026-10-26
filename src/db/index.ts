@@ -85,21 +85,6 @@ export async function initDatabase() {
     const countItems = await db.items.count();
     if (countItems === 0) {
       await seedInitialInventoryIfEmpty();
-    } else {
-      // Migrate initial seeded dressing items that were set to 0 by default into null (needs cost)
-      if (typeof window !== 'undefined' && !localStorage.getItem('kozha_unset_seed_costs_v1')) {
-        const allItems = await db.items.toArray();
-        const updates: Item[] = [];
-        for (const item of allItems) {
-          if (item.source === 'Vinted Dressing' && !item.costExplicitlySet && item.purchasePrice === 0) {
-            updates.push({ ...item, purchasePrice: null, costExplicitlySet: false });
-          }
-        }
-        if (updates.length > 0) {
-          await db.items.bulkPut(updates);
-        }
-        localStorage.setItem('kozha_unset_seed_costs_v1', 'true');
-      }
     }
   } catch (e) {
     console.error('Database initialization error:', e);

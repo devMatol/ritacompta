@@ -67,11 +67,32 @@ export const App: React.FC = () => {
     try {
       setIsCloudConnected(true);
 
-      // 1. Fetch remote items and merge into local Dexie
+      // 1. Fetch remote items and merge into local Dexie with price rollback protection
       const remoteItems = await cloudFetchItems();
       if (remoteItems) {
         if (remoteItems.length > 0) {
-          await db.items.bulkPut(remoteItems);
+          const localItems = await db.items.toArray();
+          const localMap = new Map(localItems.map(i => [i.id, i]));
+          
+          // Smart merge: Never overwrite an existing local price with null.
+          // If local has a price and remote was set to null, restore local price to cloud!
+          const mergedItems: Item[] = [];
+          const toPushToCloud: Item[] = [];
+
+          for (const remote of remoteItems) {
+            const local = localMap.get(remote.id);
+            if (local && local.purchasePrice !== null && local.purchasePrice !== undefined && remote.purchasePrice === null) {
+              mergedItems.push(local);
+              toPushToCloud.push(local);
+            } else {
+              mergedItems.push(remote);
+            }
+          }
+
+          await db.items.bulkPut(mergedItems);
+          if (toPushToCloud.length > 0) {
+            await cloudBulkAddItems(toPushToCloud);
+          }
         } else {
           // If remote is empty, ensure local is seeded if empty, then push to remote
           const localCount = await db.items.count();
@@ -144,6 +165,14 @@ export const App: React.FC = () => {
             if (payload.eventType === 'INSERT' || payload.eventType === 'UPDATE') {
               const r = payload.new;
               const hasCost = r.purchase_price !== null && r.purchase_price !== undefined && r.purchase_price !== '';
+              const remotePrice = hasCost ? Number(r.purchase_price) : null;
+
+              // Price protection: if remote is null, never wipe out a valid local price
+              const localExisting = await db.items.get(r.id);
+              const finalPrice = (remotePrice === null && localExisting && localExisting.purchasePrice !== null && localExisting.purchasePrice !== undefined)
+                ? localExisting.purchasePrice
+                : remotePrice;
+
               await db.items.put({
                 id: r.id,
                 brand: r.brand,
@@ -151,12 +180,12 @@ export const App: React.FC = () => {
                 category: r.category,
                 size: r.size || '',
                 source: r.source || 'Flea Market',
-                purchasePrice: hasCost ? Number(r.purchase_price) : null,
+                purchasePrice: finalPrice,
                 targetPrice: Number(r.target_price) || 0,
                 photo: r.photo || '',
                 purchaseDate: r.purchase_date || '',
                 vintedId: r.vinted_id,
-                costExplicitlySet: Boolean(r.cost_explicitly_set ?? hasCost)
+                costExplicitlySet: Boolean(r.cost_explicitly_set ?? (finalPrice !== null))
               });
             } else if (payload.eventType === 'DELETE') {
               await db.items.delete(payload.old.id);
