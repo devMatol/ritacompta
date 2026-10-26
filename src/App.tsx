@@ -10,7 +10,7 @@ import { VintedReconciliationTab } from './components/VintedReconciliationTab';
 import { SaleModal } from './components/SaleModal';
 import { InstallPwaModal } from './components/InstallPwaModal';
 import { CloudSyncModal } from './components/CloudSyncModal';
-import { cleanStr, guessCategory } from './services/matching';
+import { cleanStr, guessCategory, isVintedItemImported } from './services/matching';
 import {
   getSupabaseConfig,
   getSupabaseClient,
@@ -306,38 +306,51 @@ export const App: React.FC = () => {
   };
 
   const handleBulkImportAll = async () => {
-    let imported = 0;
-    const existingTitles = new Set(items.map(i => cleanStr(i.title)));
+    // Only import pieces that are NOT already in stock and NOT in sales
+    const missingVinted = vintedCatalog.filter(v => !isVintedItemImported(v, items, sales));
+    if (missingVinted.length === 0) {
+      alert("All pieces from this Vinted wardrobe are already imported in your stock or sales archive.");
+      return;
+    }
+
+    const existingIds = new Set([
+      ...items.map(i => i.id),
+      ...sales.map(s => s.itemId).filter(Boolean)
+    ]);
+    let nextNum = items.length + sales.length + 1;
 
     const newItems: Item[] = [];
-    for (const [idx, vnt] of vintedCatalog.entries()) {
-      if (!existingTitles.has(cleanStr(vnt.title))) {
-        newItems.push({
-          id: `RITA-${String(idx + 1).padStart(3, '0')}`,
-          brand: vnt.brand,
-          title: vnt.title,
-          category: guessCategory(vnt.title),
-          size: vnt.size || 'M',
-          source: 'Vinted Dressing',
-          purchasePrice: null,
-          targetPrice: vnt.price,
-          photo: vnt.photo,
-          purchaseDate: new Date().toISOString().split('T')[0],
-          costExplicitlySet: false
-        });
-        imported++;
+    for (const vnt of missingVinted) {
+      while (existingIds.has(`RITA-${String(nextNum).padStart(3, '0')}`)) {
+        nextNum++;
       }
+      const newId = `RITA-${String(nextNum).padStart(3, '0')}`;
+      existingIds.add(newId);
+
+      newItems.push({
+        id: newId,
+        brand: vnt.brand,
+        title: vnt.title,
+        category: guessCategory(vnt.title),
+        size: vnt.size || 'M',
+        source: 'Vinted Dressing',
+        purchasePrice: null, // Initial cost empty (needs cost)
+        targetPrice: vnt.price,
+        photo: vnt.photo,
+        purchaseDate: new Date().toISOString().split('T')[0],
+        costExplicitlySet: false
+      });
+      nextNum++;
     }
 
     if (newItems.length > 0) {
+      // bulkAdd guarantees zero overwriting of existing items
       await db.items.bulkAdd(newItems);
       if (getSupabaseConfig().isConfigured) {
         await cloudBulkAddItems(newItems);
       }
-      alert(`Success!\nAll ${imported} verified items from Rita's Vinted wardrobe were imported into your active stock.\n\nNote: Initial purchase costs are left empty (needs cost). You can input your actual paid purchase prices directly in the inventory view, or set 0 € for personal wardrobe items.`);
+      alert(`Success!\n${newItems.length} new piece(s) imported into active inventory.\nInitial purchase costs are empty (Needs Cost Price).`);
       setActiveTab('inventory');
-    } else {
-      alert("All items from this wardrobe are already in your inventory.");
     }
   };
 
@@ -355,34 +368,40 @@ export const App: React.FC = () => {
   };
 
   const handleQuickAddVintedToCompta = async (vnt: VintedItem) => {
-    const costStr = prompt(
-      `Enter purchase cost for "${vnt.brand} - ${vnt.title}" (€):\n• Enter 0 if free / personal wardrobe\n• Leave blank if cost is unknown`,
-      ""
-    );
-    if (costStr === null) return;
+    if (isVintedItemImported(vnt, items, sales)) {
+      alert(`"${vnt.brand} - ${vnt.title}" is already in your inventory or sold archive.`);
+      return;
+    }
 
-    const trimmed = costStr.trim();
-    const cost = trimmed === '' ? null : Math.max(0, parseFloat(trimmed) || 0);
+    const existingIds = new Set([
+      ...items.map(i => i.id),
+      ...sales.map(s => s.itemId).filter(Boolean)
+    ]);
+    let nextNum = items.length + sales.length + 1;
+    while (existingIds.has(`RITA-${String(nextNum).padStart(3, '0')}`)) {
+      nextNum++;
+    }
+    const newId = `RITA-${String(nextNum).padStart(3, '0')}`;
+
     const newItem: Item = {
-      id: `LOT-0${items.length + sales.length + 1}`,
+      id: newId,
       brand: vnt.brand,
       title: vnt.title,
       category: guessCategory(vnt.title),
       size: vnt.size || 'M',
       source: 'Vinted Dressing',
-      purchasePrice: cost,
+      purchasePrice: null,
       targetPrice: vnt.price,
       photo: vnt.photo,
       purchaseDate: new Date().toISOString().split('T')[0],
-      costExplicitlySet: cost !== null
+      costExplicitlySet: false
     };
 
     await db.items.add(newItem);
     if (getSupabaseConfig().isConfigured) {
       await cloudAddItem(newItem);
     }
-    const costLabel = cost !== null ? `${cost} €` : 'Needs cost (unpriced)';
-    alert(`${vnt.brand} added to inventory with purchase cost: ${costLabel}.`);
+    alert(`"${vnt.brand} - ${vnt.title}" imported into active inventory (needs cost price).`);
   };
 
   return (
@@ -471,6 +490,7 @@ export const App: React.FC = () => {
           {activeTab === 'vinted' && (
             <VintedReconciliationTab
               items={items}
+              sales={sales}
               vintedCatalog={vintedCatalog}
               onReloadRealDressing={loadRealVintedDressing}
               onBulkImportAll={handleBulkImportAll}

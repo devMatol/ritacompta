@@ -81,3 +81,30 @@ export function smartMatch(piece: Item, vintedList: VintedItem[]): MatchResult {
     vintedItem: isMatched ? bestMatch : null
   };
 }
+
+export function isVintedItemImported(vnt: VintedItem, items: Item[], sales: any[] = []): boolean {
+  const vTitle = cleanStr(vnt.title);
+  if (!vTitle) return false;
+
+  // 1. Check in active stock
+  const inStock = items.some(i => {
+    const iTitle = cleanStr(i.title);
+    if (iTitle === vTitle) return true;
+    if (iTitle.length > 6 && vTitle.length > 6 && (iTitle.includes(vTitle) || vTitle.includes(iTitle))) {
+      return true;
+    }
+    return smartMatch(i, [vnt]).matched;
+  });
+  if (inStock) return true;
+
+  // 2. Check in sales (already sold pieces)
+  const inSales = sales.some(s => {
+    const sTitle = cleanStr(s.title);
+    if (sTitle === vTitle) return true;
+    if (sTitle.length > 6 && vTitle.length > 6 && (sTitle.includes(vTitle) || vTitle.includes(sTitle))) {
+      return true;
+    }
+    return false;
+  });
+  return inSales;
+}
