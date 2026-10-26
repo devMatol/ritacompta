@@ -12,8 +12,8 @@ export const KpiBanner: React.FC<KpiBannerProps> = ({ items, sales }) => {
   const netMargin = totalTurnover - totalCost;
   const avgRoi = totalCost > 0 ? Math.round((netMargin / totalCost) * 100) : 0;
 
-  const stockPurchaseTotal = items.reduce((acc, i) => acc + Number(i.purchasePrice), 0);
-  const stockTargetTotal = items.reduce((acc, i) => acc + Number(i.targetPrice || (i.purchasePrice * 2.5)), 0);
+  const stockPurchaseTotal = items.reduce((acc, i) => acc + Number(i.purchasePrice || 0), 0);
+  const stockTargetTotal = items.reduce((acc, i) => acc + Number(i.targetPrice || (Number(i.purchasePrice || 0) * 2.5)), 0);
 
   let totalDays = 0;
   sales.forEach(s => {

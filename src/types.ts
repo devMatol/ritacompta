@@ -5,11 +5,12 @@ export interface Item {
   category: string;
   size: string;
   source: 'Flea Market' | 'Vinted' | 'Consignment' | 'Private Seller' | string;
-  purchasePrice: number;
+  purchasePrice: number | null;
   targetPrice: number;
   photo?: string;
   purchaseDate: string;
   vintedId?: string;
+  costExplicitlySet?: boolean;
 }
 
 export interface Sale {

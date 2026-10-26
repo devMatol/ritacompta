@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { Item, Sale } from '../types';
+import { isCostSet } from '../services/matching';
 import {
   TrendingUp,
   ShoppingBag,
@@ -33,10 +34,15 @@ export const DashboardTab: React.FC<DashboardTabProps> = ({
   // Active Stock Valuation calculations
   const stockCount = items.length;
   const stockTargetValue = items.reduce((acc, i) => {
-    const val = Number(i.targetPrice) || (Number(i.purchasePrice) > 0 ? Number(i.purchasePrice) * 2.5 : 0);
+    const costSet = isCostSet(i.purchasePrice);
+    const cost = costSet ? Number(i.purchasePrice) : 0;
+    const val = Number(i.targetPrice) || (costSet && cost > 0 ? cost * 2.5 : 0);
     return acc + val;
   }, 0);
-  const stockCostValue = items.reduce((acc, i) => acc + (Number(i.purchasePrice) || 0), 0);
+  const stockCostValue = items.reduce((acc, i) => {
+    const costSet = isCostSet(i.purchasePrice);
+    return acc + (costSet ? Number(i.purchasePrice) : 0);
+  }, 0);
   const potentialProfit = stockTargetValue - stockCostValue;
   const avgItemPrice = stockCount > 0 ? Math.round(stockTargetValue / stockCount) : 0;
 

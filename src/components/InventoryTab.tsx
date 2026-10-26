@@ -1,6 +1,6 @@
 import React, { useState, useMemo } from 'react';
 import { Item, VintedItem } from '../types';
-import { smartMatch } from '../services/matching';
+import { smartMatch, isCostSet } from '../services/matching';
 import { Search, Plus, Package, ArrowUpDown, LayoutGrid, List, SlidersHorizontal, AlertCircle, CheckCircle2 } from 'lucide-react';
 
 interface InventoryTabProps {
@@ -8,7 +8,7 @@ interface InventoryTabProps {
   vintedCatalog: VintedItem[];
   onOpenSaleModal: (item: Item) => void;
   onNavigateAdd: () => void;
-  onUpdatePurchasePrice: (itemId: string, newPrice: number) => void;
+  onUpdatePurchasePrice: (itemId: string, newPrice: number | null) => void;
 }
 
 type SortOption = 'newest' | 'brand_asc' | 'price_desc' | 'price_asc' | 'margin_desc' | 'unpriced_first';
@@ -29,8 +29,8 @@ export const InventoryTab: React.FC<InventoryTabProps> = ({
 
   const categories = useMemo(() => ['ALL', ...Array.from(new Set(items.map(i => i.category)))], [items]);
 
-  // Counts for filter pills
-  const unpricedCount = useMemo(() => items.filter(i => Number(i.purchasePrice) === 0).length, [items]);
+  // Counts for filter pills: only items where isCostSet is false need costs
+  const unpricedCount = useMemo(() => items.filter(i => !isCostSet(i.purchasePrice)).length, [items]);
   const matchedCount = useMemo(() => items.filter(i => smartMatch(i, vintedCatalog).matched).length, [items, vintedCatalog]);
   const notMatchedCount = items.length - matchedCount;
 
@@ -49,7 +49,7 @@ export const InventoryTab: React.FC<InventoryTabProps> = ({
       // 3. Status filter
       let matchesStatus = true;
       if (statusFilter === 'unpriced') {
-        matchesStatus = Number(item.purchasePrice) === 0;
+        matchesStatus = !isCostSet(item.purchasePrice);
       } else if (statusFilter === 'vinted_matched') {
         matchesStatus = smartMatch(item, vintedCatalog).matched;
       } else if (statusFilter === 'not_on_vinted') {
@@ -61,10 +61,14 @@ export const InventoryTab: React.FC<InventoryTabProps> = ({
 
     // Sort logic
     result.sort((a, b) => {
-      const aTarget = Number(a.targetPrice) || (Number(a.purchasePrice) * 2.5);
-      const bTarget = Number(b.targetPrice) || (Number(b.purchasePrice) * 2.5);
-      const aMargin = aTarget - Number(a.purchasePrice);
-      const bMargin = bTarget - Number(b.purchasePrice);
+      const aSet = isCostSet(a.purchasePrice);
+      const bSet = isCostSet(b.purchasePrice);
+      const aCost = aSet ? Number(a.purchasePrice) : 0;
+      const bCost = bSet ? Number(b.purchasePrice) : 0;
+      const aTarget = Number(a.targetPrice) || (aSet ? aCost * 2.5 : 0);
+      const bTarget = Number(b.targetPrice) || (bSet ? bCost * 2.5 : 0);
+      const aMargin = aTarget - aCost;
+      const bMargin = bTarget - bCost;
 
       switch (sortBy) {
         case 'brand_asc':
@@ -76,8 +80,8 @@ export const InventoryTab: React.FC<InventoryTabProps> = ({
         case 'margin_desc':
           return bMargin - aMargin;
         case 'unpriced_first':
-          if (a.purchasePrice === 0 && b.purchasePrice !== 0) return -1;
-          if (a.purchasePrice !== 0 && b.purchasePrice === 0) return 1;
+          if (!aSet && bSet) return -1;
+          if (aSet && !bSet) return 1;
           return 0;
         case 'newest':
         default:
@@ -89,14 +93,22 @@ export const InventoryTab: React.FC<InventoryTabProps> = ({
   }, [items, search, selectedCategory, statusFilter, sortBy, vintedCatalog]);
 
   const handlePromptSetPrice = (item: Item) => {
-    const currentCost = typeof item.purchasePrice === 'number' ? item.purchasePrice : 0;
+    const isSet = isCostSet(item.purchasePrice);
+    const initialVal = isSet ? String(item.purchasePrice) : "";
     const p = prompt(
-      `Edit purchase cost for "${item.brand} - ${item.title}" (€):\n(Enter 0 if this item was free, a gift, or from personal wardrobe)`,
-      String(currentCost)
+      `Enter purchase cost for "${item.brand} - ${item.title}" (€):\n• Enter 0 if free / personal wardrobe\n• Leave blank/empty if cost is not yet known`,
+      initialVal
     );
-    if (p !== null && !isNaN(parseFloat(p))) {
-      const val = Math.max(0, parseFloat(p));
-      onUpdatePurchasePrice(item.id, val);
+    if (p === null) return; // Cancelled
+
+    const trimmed = p.trim();
+    if (trimmed === '') {
+      onUpdatePurchasePrice(item.id, null);
+    } else {
+      const val = parseFloat(trimmed);
+      if (!isNaN(val)) {
+        onUpdatePurchasePrice(item.id, Math.max(0, val));
+      }
     }
   };
 
@@ -279,9 +291,10 @@ export const InventoryTab: React.FC<InventoryTabProps> = ({
         /* 4. CARDS GRID VIEW (Responsive: 1 col mobile, 2 col tablet, 3-4 col desktop) */
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 sm:gap-5">
           {processedItems.map(item => {
-            const target = Number(item.targetPrice) || (Number(item.purchasePrice) * 2.5);
-            const cost = Number(item.purchasePrice) || 0;
-            const potentialMargin = target - cost;
+            const costSet = isCostSet(item.purchasePrice);
+            const cost = costSet ? Number(item.purchasePrice) : null;
+            const target = Number(item.targetPrice) || (costSet ? cost! * 2.5 : 0);
+            const potentialMargin = costSet ? target - cost! : null;
             const match = smartMatch(item, vintedCatalog);
 
             return (
@@ -353,12 +366,21 @@ export const InventoryTab: React.FC<InventoryTabProps> = ({
                     <div className="grid grid-cols-3 gap-1.5 p-2 bg-surface-subtle border border-border rounded-sm mb-4 text-center">
                       <div>
                         <div className="text-[10px] uppercase font-mono tracking-wider text-tertiary">Cost</div>
-                        <div className="font-mono text-xs font-bold text-primary flex items-center justify-center gap-1">
-                          <span>{cost} €</span>
-                          {cost === 0 && (
-                            <span className="text-[9px] font-normal text-secondary font-mono">(0)</span>
-                          )}
-                        </div>
+                        {costSet ? (
+                          <div className="font-mono text-xs font-bold text-primary flex items-center justify-center gap-1">
+                            <span>{cost} €</span>
+                            {cost === 0 && (
+                              <span className="text-[9px] font-normal text-secondary font-mono">(0)</span>
+                            )}
+                          </div>
+                        ) : (
+                          <button
+                            onClick={() => handlePromptSetPrice(item)}
+                            className="text-[10px] font-bold text-warning underline block mx-auto hover:text-primary whitespace-nowrap"
+                          >
+                            Set cost
+                          </button>
+                        )}
                       </div>
 
                       <div className="border-x border-border">
@@ -370,21 +392,34 @@ export const InventoryTab: React.FC<InventoryTabProps> = ({
 
                       <div>
                         <div className="text-[10px] uppercase font-mono tracking-wider text-tertiary">Margin</div>
-                        <div className="font-mono text-xs font-bold text-profit">
-                          +{potentialMargin} €
-                        </div>
+                        {potentialMargin !== null ? (
+                          <div className="font-mono text-xs font-bold text-profit">
+                            +{potentialMargin} €
+                          </div>
+                        ) : (
+                          <div className="font-mono text-[10px] text-tertiary italic">-</div>
+                        )}
                       </div>
                     </div>
                   </div>
 
                   {/* Actions Bar */}
                   <div className="flex items-center gap-2 pt-2 border-t border-border">
-                    <button
-                      onClick={() => handlePromptSetPrice(item)}
-                      className="flex-1 py-2 text-xs font-semibold bg-surface border border-border-strong hover:border-accent text-secondary hover:text-primary rounded-sm transition-all"
-                    >
-                      Edit Cost ({cost} €)
-                    </button>
+                    {costSet ? (
+                      <button
+                        onClick={() => handlePromptSetPrice(item)}
+                        className="flex-1 py-2 text-xs font-semibold bg-surface border border-border-strong hover:border-accent text-secondary hover:text-primary rounded-sm transition-all"
+                      >
+                        Edit Cost ({cost} €)
+                      </button>
+                    ) : (
+                      <button
+                        onClick={() => handlePromptSetPrice(item)}
+                        className="flex-1 py-2 text-xs font-bold bg-warning-soft border border-warning/30 hover:border-warning text-warning hover:text-primary rounded-sm transition-all"
+                      >
+                        Set Cost
+                      </button>
+                    )}
 
                     <button
                       onClick={() => onOpenSaleModal(item)}
@@ -419,9 +454,10 @@ export const InventoryTab: React.FC<InventoryTabProps> = ({
               </thead>
               <tbody className="divide-y divide-border">
                 {processedItems.map(item => {
-                  const target = Number(item.targetPrice) || (Number(item.purchasePrice) * 2.5);
-                  const cost = Number(item.purchasePrice) || 0;
-                  const potentialMargin = target - cost;
+                  const costSet = isCostSet(item.purchasePrice);
+                  const cost = costSet ? Number(item.purchasePrice) : null;
+                  const target = Number(item.targetPrice) || (costSet ? cost! * 2.5 : 0);
+                  const potentialMargin = costSet ? target - cost! : null;
                   const match = smartMatch(item, vintedCatalog);
 
                   return (
@@ -450,21 +486,34 @@ export const InventoryTab: React.FC<InventoryTabProps> = ({
                         {item.size}
                       </td>
                       <td className="py-3 px-3">
-                        <div className="flex items-center gap-1.5">
-                          <span className="font-mono text-xs font-bold text-primary">{cost} €</span>
+                        {costSet ? (
+                          <div className="flex items-center gap-1.5">
+                            <span className="font-mono text-xs font-bold text-primary">{cost} €</span>
+                            <button
+                              onClick={() => handlePromptSetPrice(item)}
+                              className="text-[10px] text-tertiary hover:text-accent hover:underline"
+                            >
+                              edit
+                            </button>
+                          </div>
+                        ) : (
                           <button
                             onClick={() => handlePromptSetPrice(item)}
-                            className="text-[10px] text-tertiary hover:text-accent hover:underline"
+                            className="inline-flex items-center gap-1 text-[11px] font-semibold text-warning bg-warning-soft border border-warning/30 px-2 py-0.5 rounded-sm hover:brightness-95 transition-all"
                           >
-                            edit
+                            Set cost price
                           </button>
-                        </div>
+                        )}
                       </td>
                       <td className="py-3 px-3 font-mono text-xs text-secondary">
                         {target || '-'} €
                       </td>
-                      <td className="py-3 px-3 font-mono text-xs font-bold text-profit">
-                        +{potentialMargin} €
+                      <td className="py-3 px-3 font-mono text-xs font-bold">
+                        {potentialMargin !== null ? (
+                          <span className="text-profit">+{potentialMargin} €</span>
+                        ) : (
+                          <span className="text-tertiary text-[11px] italic font-normal">Cost needed</span>
+                        )}
                       </td>
                       <td className="py-3 px-3">
                         {match.matched ? (

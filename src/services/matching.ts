@@ -10,6 +10,10 @@ export function cleanStr(s?: string): string {
     .trim();
 }
 
+export function isCostSet(price: number | null | undefined): boolean {
+  return price !== null && price !== undefined && (price as any) !== '' && !isNaN(Number(price));
+}
+
 export function guessCategory(title: string): string {
   const t = title.toLowerCase();
   if (t.includes('jacket') || t.includes('veste') || t.includes('blazer') || t.includes('bolero') || t.includes('coat') || t.includes('poncho') || t.includes('cape')) return "Jackets & Coats";

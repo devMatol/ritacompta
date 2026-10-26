@@ -143,6 +143,7 @@ export const App: React.FC = () => {
           async (payload) => {
             if (payload.eventType === 'INSERT' || payload.eventType === 'UPDATE') {
               const r = payload.new;
+              const hasCost = r.purchase_price !== null && r.purchase_price !== undefined && r.purchase_price !== '';
               await db.items.put({
                 id: r.id,
                 brand: r.brand,
@@ -150,11 +151,12 @@ export const App: React.FC = () => {
                 category: r.category,
                 size: r.size || '',
                 source: r.source || 'Flea Market',
-                purchasePrice: Number(r.purchase_price) || 0,
+                purchasePrice: hasCost ? Number(r.purchase_price) : null,
                 targetPrice: Number(r.target_price) || 0,
                 photo: r.photo || '',
                 purchaseDate: r.purchase_date || '',
-                vintedId: r.vinted_id
+                vintedId: r.vinted_id,
+                costExplicitlySet: Boolean(r.cost_explicitly_set ?? hasCost)
               });
             } else if (payload.eventType === 'DELETE') {
               await db.items.delete(payload.old.id);
@@ -241,7 +243,7 @@ export const App: React.FC = () => {
       title: item.title,
       channel,
       salePrice,
-      purchasePrice: item.purchasePrice,
+      purchasePrice: item.purchasePrice ?? 0,
       photo: item.photo,
       saleDate: new Date().toISOString().split('T')[0],
       purchaseDate: item.purchaseDate,
@@ -273,10 +275,11 @@ export const App: React.FC = () => {
           category: guessCategory(vnt.title),
           size: vnt.size || 'M',
           source: 'Vinted Dressing',
-          purchasePrice: 0,
+          purchasePrice: null,
           targetPrice: vnt.price,
           photo: vnt.photo,
-          purchaseDate: new Date().toISOString().split('T')[0]
+          purchaseDate: new Date().toISOString().split('T')[0],
+          costExplicitlySet: false
         });
         imported++;
       }
@@ -287,15 +290,18 @@ export const App: React.FC = () => {
       if (getSupabaseConfig().isConfigured) {
         await cloudBulkAddItems(newItems);
       }
-      alert(`Success!\nAll ${imported} verified items from Rita's Vinted wardrobe were imported into your active stock.\n\nNote: Initial purchase costs are set to 0 € by default. You can input your actual paid purchase prices directly in the inventory view.`);
+      alert(`Success!\nAll ${imported} verified items from Rita's Vinted wardrobe were imported into your active stock.\n\nNote: Initial purchase costs are left empty (needs cost). You can input your actual paid purchase prices directly in the inventory view, or set 0 € for personal wardrobe items.`);
       setActiveTab('inventory');
     } else {
       alert("All items from this wardrobe are already in your inventory.");
     }
   };
 
-  const handleUpdatePurchasePrice = async (itemId: string, newPrice: number) => {
-    await db.items.update(itemId, { purchasePrice: newPrice });
+  const handleUpdatePurchasePrice = async (itemId: string, newPrice: number | null) => {
+    await db.items.update(itemId, {
+      purchasePrice: newPrice,
+      costExplicitlySet: newPrice !== null
+    });
     if (getSupabaseConfig().isConfigured) {
       await cloudUpdateItemPrice(itemId, newPrice);
     }
@@ -303,12 +309,13 @@ export const App: React.FC = () => {
 
   const handleQuickAddVintedToCompta = async (vnt: VintedItem) => {
     const costStr = prompt(
-      `Enter your actual purchase price for "${vnt.brand} - ${vnt.title}" (€):\n(Enter 0 if this item is from personal dressing, free, or a gift)`,
-      "0"
+      `Enter purchase cost for "${vnt.brand} - ${vnt.title}" (€):\n• Enter 0 if free / personal wardrobe\n• Leave blank if cost is unknown`,
+      ""
     );
     if (costStr === null) return;
 
-    const cost = Math.max(0, parseFloat(costStr) || 0);
+    const trimmed = costStr.trim();
+    const cost = trimmed === '' ? null : Math.max(0, parseFloat(trimmed) || 0);
     const newItem: Item = {
       id: `LOT-0${items.length + sales.length + 1}`,
       brand: vnt.brand,
@@ -319,14 +326,16 @@ export const App: React.FC = () => {
       purchasePrice: cost,
       targetPrice: vnt.price,
       photo: vnt.photo,
-      purchaseDate: new Date().toISOString().split('T')[0]
+      purchaseDate: new Date().toISOString().split('T')[0],
+      costExplicitlySet: cost !== null
     };
 
     await db.items.add(newItem);
     if (getSupabaseConfig().isConfigured) {
       await cloudAddItem(newItem);
     }
-    alert(`${vnt.brand} added to inventory with an actual purchase cost of ${cost} €.`);
+    const costLabel = cost !== null ? `${cost} €` : 'Needs cost (unpriced)';
+    alert(`${vnt.brand} added to inventory with purchase cost: ${costLabel}.`);
   };
 
   return (

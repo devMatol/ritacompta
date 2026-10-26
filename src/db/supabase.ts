@@ -53,6 +53,7 @@ export function getSupabaseClient(): SupabaseClient | null {
 
 // Convert DB snake_case to Item
 function rowToItem(row: any): Item {
+  const hasCost = row.purchase_price !== null && row.purchase_price !== undefined && row.purchase_price !== '';
   return {
     id: row.id,
     brand: row.brand,
@@ -60,11 +61,12 @@ function rowToItem(row: any): Item {
     category: row.category,
     size: row.size || '',
     source: row.source || 'Flea Market',
-    purchasePrice: Number(row.purchase_price) || 0,
+    purchasePrice: hasCost ? Number(row.purchase_price) : null,
     targetPrice: Number(row.target_price) || 0,
     photo: row.photo || '',
     purchaseDate: row.purchase_date || '',
-    vintedId: row.vinted_id
+    vintedId: row.vinted_id,
+    costExplicitlySet: Boolean(row.cost_explicitly_set ?? hasCost)
   };
 }
 
@@ -77,7 +79,7 @@ function itemToRow(item: Item) {
     category: item.category,
     size: item.size,
     source: item.source,
-    purchase_price: item.purchasePrice,
+    purchase_price: item.purchasePrice !== null && item.purchasePrice !== undefined ? item.purchasePrice : null,
     target_price: item.targetPrice,
     photo: item.photo,
     purchase_date: item.purchaseDate,
@@ -154,7 +156,7 @@ export async function cloudBulkAddItems(items: Item[]): Promise<boolean> {
   return true;
 }
 
-export async function cloudUpdateItemPrice(itemId: string, newPrice: number): Promise<boolean> {
+export async function cloudUpdateItemPrice(itemId: string, newPrice: number | null): Promise<boolean> {
   const client = getSupabaseClient();
   if (!client) return false;
   const { error } = await client.from('items').update({ purchase_price: newPrice }).eq('id', itemId);

@@ -53,9 +53,9 @@ export const AddPieceTab: React.FC<AddPieceTabProps> = ({
     e.preventDefault();
     if (!brand.trim() || !title.trim()) return;
 
-    const pPrice = purchasePrice === '' ? 0 : Math.max(0, parseFloat(purchasePrice) || 0);
+    const pPrice = purchasePrice === '' ? null : Math.max(0, parseFloat(purchasePrice) || 0);
     const parsedTarget = targetPrice !== '' ? parseFloat(targetPrice) : NaN;
-    const tPrice = !isNaN(parsedTarget) ? Math.max(0, parsedTarget) : (pPrice > 0 ? pPrice * 2.5 : 0);
+    const tPrice = !isNaN(parsedTarget) ? Math.max(0, parsedTarget) : (pPrice !== null && pPrice > 0 ? pPrice * 2.5 : 0);
 
     const newItem: Item = {
       id: `LOT-0${existingItemsCount + 1}`,
@@ -67,7 +67,8 @@ export const AddPieceTab: React.FC<AddPieceTabProps> = ({
       purchasePrice: pPrice,
       targetPrice: tPrice,
       photo: photoBase64,
-      purchaseDate: new Date().toISOString().split('T')[0]
+      purchaseDate: new Date().toISOString().split('T')[0],
+      costExplicitlySet: pPrice !== null
     };
 
     onAddItem(newItem);

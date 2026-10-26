@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Item } from '../types';
+import { isCostSet } from '../services/matching';
 import { Package } from 'lucide-react';
 
 interface SaleModalProps {
@@ -25,7 +26,8 @@ export const SaleModal: React.FC<SaleModalProps> = ({
 
   useEffect(() => {
     if (item) {
-      setSalePrice(String(initialPrice || item.targetPrice || item.purchasePrice * 2.5));
+      const fallbackTarget = item.targetPrice || (item.purchasePrice ? item.purchasePrice * 2.5 : 0);
+      setSalePrice(String(initialPrice || fallbackTarget || ''));
       setChannel(initialChannel);
     }
   }, [item, initialPrice, initialChannel]);
@@ -60,9 +62,16 @@ export const SaleModal: React.FC<SaleModalProps> = ({
           <div>
             <div className="font-heading font-bold text-sm text-primary">{item.brand} — {item.title}</div>
             <div className="text-xs text-secondary mt-0.5">
-              Purchase cost: <span className="font-mono font-semibold text-primary">{item.purchasePrice} €</span>
-              {Number(item.purchasePrice) === 0 && (
-                <span className="text-profit ml-1.5 font-mono text-[11px] font-semibold">(0 € cost · 100% margin)</span>
+              Purchase cost:{' '}
+              {isCostSet(item.purchasePrice) ? (
+                <>
+                  <span className="font-mono font-semibold text-primary">{item.purchasePrice} €</span>
+                  {Number(item.purchasePrice) === 0 && (
+                    <span className="text-profit ml-1.5 font-mono text-[11px] font-semibold">(0 € cost · 100% margin)</span>
+                  )}
+                </>
+              ) : (
+                <span className="font-mono text-warning font-semibold">Not set (needs cost)</span>
               )}
             </div>
           </div>
