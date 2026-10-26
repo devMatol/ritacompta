@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { useLiveQuery } from 'dexie-react-hooks';
-import { db, initDatabase, loadRealVintedDressing } from './db';
+import { db, initDatabase, loadRealVintedDressing, seedInitialInventoryIfEmpty } from './db';
 import { Item, Sale, VintedItem } from './types';
 import { Header } from './components/Header';
 import { DashboardTab } from './components/DashboardTab';
@@ -10,7 +10,7 @@ import { VintedReconciliationTab } from './components/VintedReconciliationTab';
 import { SaleModal } from './components/SaleModal';
 import { InstallPwaModal } from './components/InstallPwaModal';
 import { CloudSyncModal } from './components/CloudSyncModal';
-import { cleanStr } from './services/matching';
+import { cleanStr, guessCategory } from './services/matching';
 import {
   getSupabaseConfig,
   getSupabaseClient,
@@ -26,7 +26,8 @@ import {
 } from './db/supabase';
 
 export const App: React.FC = () => {
-  const [activeTab, setActiveTab] = useState<'inventory' | 'vinted' | 'add' | 'dashboard'>('inventory');
+  // Sales Dashboard is in first position by default
+  const [activeTab, setActiveTab] = useState<'inventory' | 'vinted' | 'add' | 'dashboard'>('dashboard');
 
   // Cloud Database Sync state
   const [isCloudModalOpen, setIsCloudModalOpen] = useState(false);
@@ -72,7 +73,11 @@ export const App: React.FC = () => {
         if (remoteItems.length > 0) {
           await db.items.bulkPut(remoteItems);
         } else {
-          // If remote is empty but local has items, push local to remote
+          // If remote is empty, ensure local is seeded if empty, then push to remote
+          const localCount = await db.items.count();
+          if (localCount === 0) {
+            await seedInitialInventoryIfEmpty();
+          }
           const localItems = await db.items.toArray();
           if (localItems.length > 0) {
             await cloudBulkAddItems(localItems);
@@ -324,18 +329,6 @@ export const App: React.FC = () => {
     alert(`${vnt.brand} added to inventory with an actual purchase cost of ${cost} €.`);
   };
 
-  const guessCategory = (title: string) => {
-    const t = title.toLowerCase();
-    if (t.includes('jacket') || t.includes('veste') || t.includes('blazer') || t.includes('bolero') || t.includes('coat') || t.includes('poncho') || t.includes('cape')) return "Jackets & Coats";
-    if (t.includes('boots') || t.includes('heels') || t.includes('loafers') || t.includes('sneakers') || t.includes('chaussures')) return "Shoes & Boots";
-    if (t.includes('dress') || t.includes('robe') || t.includes('suit') || t.includes('tailleur')) return "Dresses & Suits";
-    if (t.includes('skirt') || t.includes('jupe') || t.includes('trousers') || t.includes('joggers') || t.includes('pantalon')) return "Skirts & Trousers";
-    if (t.includes('cardigan') || t.includes('jumper') || t.includes('pull') || t.includes('hoodie')) return "Knitwear & Sweaters";
-    if (t.includes('bag') || t.includes('sac')) return "Bags & Leather Goods";
-    if (t.includes('gloves') || t.includes('gants') || t.includes('foulard') || t.includes('scarf') || t.includes('belt') || t.includes('ceinture') || t.includes('hat') || t.includes('chapeau')) return "Accessories";
-    return "Tops & Shirts";
-  };
-
   return (
     <div className="min-h-screen flex flex-col bg-canvas text-primary">
       
@@ -354,8 +347,21 @@ export const App: React.FC = () => {
 
       <main className="max-w-[1280px] w-full mx-auto px-4 sm:px-6 py-5 flex-1">
         
-        {/* Desktop Navigation Tabs */}
+        {/* Desktop Navigation Tabs - Sales Dashboard in 1st position */}
         <nav className="hidden md:flex items-center gap-1 border-b border-border mb-6 overflow-x-auto pb-px">
+          <button
+            onClick={() => setActiveTab('dashboard')}
+            className={`px-4 py-2.5 text-sm font-medium border-b-2 transition-all whitespace-nowrap flex items-center gap-2 ${
+              activeTab === 'dashboard'
+                ? 'border-accent text-primary font-bold'
+                : 'border-transparent text-secondary hover:text-primary'
+            }`}
+          >
+            <span>Sales Dashboard</span>
+            <span className="font-mono text-xs px-2 py-0.2 bg-surface-elevated text-secondary rounded-full">
+              {sales.length}
+            </span>
+          </button>
           <button
             onClick={() => setActiveTab('inventory')}
             className={`px-4 py-2.5 text-sm font-medium border-b-2 transition-all whitespace-nowrap flex items-center gap-2 ${
@@ -391,19 +397,6 @@ export const App: React.FC = () => {
             }`}
           >
             Quick Add (+ Photo)
-          </button>
-          <button
-            onClick={() => setActiveTab('dashboard')}
-            className={`px-4 py-2.5 text-sm font-medium border-b-2 transition-all whitespace-nowrap flex items-center gap-2 ${
-              activeTab === 'dashboard'
-                ? 'border-accent text-primary font-bold'
-                : 'border-transparent text-secondary hover:text-primary'
-            }`}
-          >
-            <span>Sales Dashboard</span>
-            <span className="font-mono text-xs px-2 py-0.2 bg-surface-elevated text-secondary rounded-full">
-              {sales.length}
-            </span>
           </button>
         </nav>
 

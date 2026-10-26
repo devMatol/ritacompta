@@ -1,5 +1,6 @@
 import Dexie, { type Table } from 'dexie';
 import { Item, Sale, VintedItem } from '../types';
+import { guessCategory } from '../services/matching';
 
 export class KozhaDatabase extends Dexie {
   items!: Table<Item, string>;
@@ -18,7 +19,7 @@ export class KozhaDatabase extends Dexie {
 
 export const db = new KozhaDatabase();
 
-// Load the 120 verified items from Rita's Vinted wardrobe
+// Load the 120 verified items from Rita's Vinted wardrobe into vintedCatalog
 export async function loadRealVintedDressing(): Promise<VintedItem[]> {
   try {
     const res = await fetch('/rita_vinted_dressing.json');
@@ -36,12 +37,53 @@ export async function loadRealVintedDressing(): Promise<VintedItem[]> {
   }
 }
 
+// Automatically populate the active inventory with Rita's 120 items if empty
+export async function seedInitialInventoryIfEmpty(): Promise<number> {
+  try {
+    const count = await db.items.count();
+    if (count > 0) return count;
+
+    const res = await fetch('/rita_vinted_dressing.json');
+    if (!res.ok) return 0;
+    const vntItems: VintedItem[] = await res.json();
+
+    const initialItems: Item[] = vntItems.map((vnt, idx) => ({
+      id: `RITA-${String(idx + 1).padStart(3, '0')}`,
+      brand: vnt.brand,
+      title: vnt.title,
+      category: guessCategory(vnt.title),
+      size: vnt.size || 'M',
+      source: 'Vinted Dressing',
+      purchasePrice: 0,
+      targetPrice: vnt.price,
+      photo: vnt.photo,
+      purchaseDate: new Date().toISOString().split('T')[0]
+    }));
+
+    await db.transaction('rw', db.items, async () => {
+      await db.items.bulkPut(initialItems);
+    });
+
+    console.log(`Initial active inventory seeded with ${initialItems.length} items.`);
+    return initialItems.length;
+  } catch (err) {
+    console.error('Error seeding initial inventory:', err);
+    return 0;
+  }
+}
+
 export async function initDatabase() {
   try {
     await db.open();
+
     const countVinted = await db.vintedCatalog.count();
     if (countVinted === 0) {
       await loadRealVintedDressing();
+    }
+
+    const countItems = await db.items.count();
+    if (countItems === 0) {
+      await seedInitialInventoryIfEmpty();
     }
   } catch (e) {
     console.error('Database initialization error:', e);

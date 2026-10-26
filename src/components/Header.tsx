@@ -121,9 +121,28 @@ export const Header: React.FC<HeaderProps> = ({
         </div>
       </div>
 
-      {/* Mobile Drawer Menu (Burger) */}
+      {/* Mobile Drawer Menu (Burger) - DASHBOARD IN POSITION #1 */}
       {mobileMenuOpen && (
         <nav className="md:hidden border-t border-border bg-surface px-4 py-4 space-y-1 shadow-lg animate-fade-in">
+          {/* 1. Sales Dashboard */}
+          <button
+            onClick={() => handleSelectTab('dashboard')}
+            className={`w-full flex items-center justify-between px-3.5 py-2.5 rounded-sm text-sm font-medium transition-all ${
+              activeTab === 'dashboard'
+                ? 'bg-surface-elevated text-primary font-bold border-l-4 border-accent'
+                : 'text-secondary hover:bg-surface-subtle'
+            }`}
+          >
+            <div className="flex items-center gap-2.5">
+              <BarChart3 size={17} className="text-primary" />
+              <span>Sales Dashboard</span>
+            </div>
+            <span className="font-mono text-xs px-2 py-0.5 bg-surface rounded-full border border-border text-secondary">
+              {salesCount} sale(s)
+            </span>
+          </button>
+
+          {/* 2. Active Inventory */}
           <button
             onClick={() => handleSelectTab('inventory')}
             className={`w-full flex items-center justify-between px-3.5 py-2.5 rounded-sm text-sm font-medium transition-all ${
@@ -141,6 +160,7 @@ export const Header: React.FC<HeaderProps> = ({
             </span>
           </button>
 
+          {/* 3. Vinted Sync */}
           <button
             onClick={() => handleSelectTab('vinted')}
             className={`w-full flex items-center justify-between px-3.5 py-2.5 rounded-sm text-sm font-medium transition-all ${
@@ -158,6 +178,7 @@ export const Header: React.FC<HeaderProps> = ({
             </span>
           </button>
 
+          {/* 4. Quick Add (+ Photo) */}
           <button
             onClick={() => handleSelectTab('add')}
             className={`w-full flex items-center justify-between px-3.5 py-2.5 rounded-sm text-sm font-medium transition-all ${
@@ -170,23 +191,6 @@ export const Header: React.FC<HeaderProps> = ({
               <PlusCircle size={17} className="text-accent" />
               <span>Quick Add (+ Photo)</span>
             </div>
-          </button>
-
-          <button
-            onClick={() => handleSelectTab('dashboard')}
-            className={`w-full flex items-center justify-between px-3.5 py-2.5 rounded-sm text-sm font-medium transition-all ${
-              activeTab === 'dashboard'
-                ? 'bg-surface-elevated text-primary font-bold border-l-4 border-accent'
-                : 'text-secondary hover:bg-surface-subtle'
-            }`}
-          >
-            <div className="flex items-center gap-2.5">
-              <BarChart3 size={17} className="text-primary" />
-              <span>Sales Dashboard</span>
-            </div>
-            <span className="font-mono text-xs px-2 py-0.5 bg-surface rounded-full border border-border text-secondary">
-              {salesCount} sale(s)
-            </span>
           </button>
 
           {/* Cloud Database Sync in Mobile Drawer */}

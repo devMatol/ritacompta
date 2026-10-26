@@ -10,6 +10,18 @@ export function cleanStr(s?: string): string {
     .trim();
 }
 
+export function guessCategory(title: string): string {
+  const t = title.toLowerCase();
+  if (t.includes('jacket') || t.includes('veste') || t.includes('blazer') || t.includes('bolero') || t.includes('coat') || t.includes('poncho') || t.includes('cape')) return "Jackets & Coats";
+  if (t.includes('boots') || t.includes('heels') || t.includes('loafers') || t.includes('sneakers') || t.includes('chaussures')) return "Shoes & Boots";
+  if (t.includes('dress') || t.includes('robe') || t.includes('suit') || t.includes('tailleur')) return "Dresses & Suits";
+  if (t.includes('skirt') || t.includes('jupe') || t.includes('trousers') || t.includes('joggers') || t.includes('pantalon')) return "Skirts & Trousers";
+  if (t.includes('cardigan') || t.includes('jumper') || t.includes('pull') || t.includes('hoodie')) return "Knitwear & Sweaters";
+  if (t.includes('bag') || t.includes('sac')) return "Bags & Leather Goods";
+  if (t.includes('gloves') || t.includes('gants') || t.includes('foulard') || t.includes('scarf') || t.includes('belt') || t.includes('ceinture') || t.includes('hat') || t.includes('chapeau')) return "Accessories";
+  return "Tops & Shirts";
+}
+
 export function smartMatch(piece: Item, vintedList: VintedItem[]): MatchResult {
   let bestMatch: VintedItem | null = null;
   let highestScore = 0;
