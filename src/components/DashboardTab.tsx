@@ -1,17 +1,46 @@
 import React, { useState } from 'react';
-import { Sale } from '../types';
-import { TrendingUp, ShoppingBag, DollarSign, Clock, Store, Globe, Search, Filter, Package } from 'lucide-react';
+import { Item, Sale } from '../types';
+import {
+  TrendingUp,
+  ShoppingBag,
+  DollarSign,
+  Clock,
+  Store,
+  Globe,
+  Search,
+  Filter,
+  Package,
+  Boxes,
+  ArrowRight
+} from 'lucide-react';
 
 interface DashboardTabProps {
   sales: Sale[];
+  items?: Item[];
   onNavigateAdd: () => void;
+  onNavigateInventory?: () => void;
 }
 
-export const DashboardTab: React.FC<DashboardTabProps> = ({ sales, onNavigateAdd }) => {
+export const DashboardTab: React.FC<DashboardTabProps> = ({
+  sales,
+  items = [],
+  onNavigateAdd,
+  onNavigateInventory
+}) => {
   const [salesSearch, setSalesSearch] = useState('');
   const [channelFilter, setChannelFilter] = useState<'ALL' | 'Vinted' | 'Flea Market' | 'Direct'>('ALL');
 
-  // Financial calculations
+  // Active Stock Valuation calculations
+  const stockCount = items.length;
+  const stockTargetValue = items.reduce((acc, i) => {
+    const val = Number(i.targetPrice) || (Number(i.purchasePrice) > 0 ? Number(i.purchasePrice) * 2.5 : 0);
+    return acc + val;
+  }, 0);
+  const stockCostValue = items.reduce((acc, i) => acc + (Number(i.purchasePrice) || 0), 0);
+  const potentialProfit = stockTargetValue - stockCostValue;
+  const avgItemPrice = stockCount > 0 ? Math.round(stockTargetValue / stockCount) : 0;
+
+  // Financial calculations from completed sales
   const totalTurnover = sales.reduce((acc, s) => acc + Number(s.salePrice), 0);
   const totalCost = sales.reduce((acc, s) => acc + Number(s.purchasePrice), 0);
   const netMargin = totalTurnover - totalCost;
@@ -74,7 +103,91 @@ export const DashboardTab: React.FC<DashboardTabProps> = ({ sales, onNavigateAdd
   return (
     <div className="space-y-6 animate-fade-in">
       
-      {/* 1. FINANCIAL KPIS */}
+      {/* 1. ACTIVE STOCK VALUATION */}
+      <section className="bg-surface border border-border rounded-md p-5 sm:p-6 shadow-sm">
+        <div className="flex flex-wrap items-center justify-between gap-3 border-b border-border pb-4 mb-4">
+          <div>
+            <div className="flex items-center gap-2">
+              <Boxes size={18} className="text-accent" />
+              <h2 className="font-heading text-lg sm:text-xl font-bold text-primary">
+                Active Stock Valuation
+              </h2>
+            </div>
+            <p className="text-xs text-secondary mt-0.5">
+              Live estimated value of your active unsold inventory ({stockCount} pieces in stock).
+            </p>
+          </div>
+          {onNavigateInventory && (
+            <button
+              onClick={onNavigateInventory}
+              className="inline-flex items-center gap-1.5 text-xs font-semibold text-accent hover:underline font-mono"
+            >
+              <span>View Inventory</span>
+              <ArrowRight size={13} />
+            </button>
+          )}
+        </div>
+
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+          {/* Estimated Resale Value */}
+          <div className="p-4 bg-surface-subtle border border-border rounded-sm">
+            <div className="flex items-center justify-between text-xs uppercase tracking-wider text-secondary mb-1">
+              <span>Estimated Stock Value</span>
+              <DollarSign size={14} className="text-accent" />
+            </div>
+            <div className="font-mono text-2xl sm:text-3xl font-bold text-primary">
+              {stockTargetValue.toLocaleString('en-US')} €
+            </div>
+            <div className="text-xs text-secondary mt-1">
+              Listing / target resale price
+            </div>
+          </div>
+
+          {/* Invested Capital / Purchase Cost */}
+          <div className="p-4 bg-surface-subtle border border-border rounded-sm">
+            <div className="flex items-center justify-between text-xs uppercase tracking-wider text-secondary mb-1">
+              <span>Invested Capital</span>
+              <Package size={14} className="text-tertiary" />
+            </div>
+            <div className="font-mono text-2xl sm:text-3xl font-bold text-secondary">
+              {stockCostValue.toLocaleString('en-US')} €
+            </div>
+            <div className="text-xs text-secondary mt-1">
+              Acquisition cost paid for stock
+            </div>
+          </div>
+
+          {/* Potential Net Margin */}
+          <div className="p-4 bg-surface-subtle border border-border rounded-sm">
+            <div className="flex items-center justify-between text-xs uppercase tracking-wider text-secondary mb-1">
+              <span>Potential Margin</span>
+              <TrendingUp size={14} className="text-profit" />
+            </div>
+            <div className="font-mono text-2xl sm:text-3xl font-bold text-profit">
+              +{potentialProfit.toLocaleString('en-US')} €
+            </div>
+            <div className="text-xs text-profit font-medium mt-1">
+              Estimated unrealized profit
+            </div>
+          </div>
+
+          {/* Stock Count & Avg Price */}
+          <div className="p-4 bg-surface-subtle border border-border rounded-sm">
+            <div className="flex items-center justify-between text-xs uppercase tracking-wider text-secondary mb-1">
+              <span>Stock Count</span>
+              <Boxes size={14} className="text-accent" />
+            </div>
+            <div className="font-mono text-2xl sm:text-3xl font-bold text-primary">
+              {stockCount} pcs
+            </div>
+            <div className="text-xs text-secondary mt-1 font-mono">
+              ~{avgItemPrice} € avg / piece
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* 2. REALIZED SALES FINANCIAL KPIS */}
       <section className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 border border-border bg-surface rounded-md overflow-hidden shadow-sm">
         <div className="p-5 border-b sm:border-r border-border">
           <div className="flex items-center justify-between text-xs uppercase tracking-wider text-secondary mb-1">

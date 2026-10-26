@@ -431,7 +431,9 @@ export const App: React.FC = () => {
           {activeTab === 'dashboard' && (
             <DashboardTab
               sales={sales}
+              items={items}
               onNavigateAdd={() => setActiveTab('add')}
+              onNavigateInventory={() => setActiveTab('inventory')}
             />
           )}
         </div>
