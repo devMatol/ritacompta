@@ -387,6 +387,7 @@ export const App: React.FC = () => {
         salesCount={sales.length}
         onOpenInstallModal={() => setIsInstallModalOpen(true)}
         onOpenCloudModal={() => setIsCloudModalOpen(true)}
+        onSyncNow={syncWithCloud}
         isStandalone={isStandalone}
         isCloudConnected={isCloudConnected}
       />

@@ -9,6 +9,7 @@ interface HeaderProps {
   salesCount: number;
   onOpenInstallModal?: () => void;
   onOpenCloudModal?: () => void;
+  onSyncNow?: () => Promise<void> | void;
   isStandalone?: boolean;
   isCloudConnected?: boolean;
 }
@@ -21,10 +22,23 @@ export const Header: React.FC<HeaderProps> = ({
   salesCount,
   onOpenInstallModal,
   onOpenCloudModal,
+  onSyncNow,
   isStandalone = false,
   isCloudConnected = false
 }) => {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [isSyncing, setIsSyncing] = useState(false);
+
+  const handleManualSync = async () => {
+    if (onSyncNow) {
+      setIsSyncing(true);
+      try {
+        await onSyncNow();
+      } finally {
+        setTimeout(() => setIsSyncing(false), 600);
+      }
+    }
+  };
 
   const handleSelectTab = (tab: 'inventory' | 'vinted' | 'add' | 'dashboard') => {
     onTabChange(tab);
@@ -47,6 +61,20 @@ export const Header: React.FC<HeaderProps> = ({
 
         {/* Action Right (Mobile Burger + Quick Install Pill) */}
         <div className="flex items-center gap-2 md:hidden">
+          {onSyncNow && (
+            <button
+              onClick={handleManualSync}
+              className={`p-1.5 rounded-sm border text-xs flex items-center gap-1 ${
+                isSyncing
+                  ? 'border-accent text-accent bg-surface-subtle'
+                  : 'border-border text-secondary bg-surface'
+              }`}
+              title="Sync latest data from cloud"
+            >
+              <RefreshCw size={14} className={isSyncing ? "animate-spin" : ""} />
+            </button>
+          )}
+
           {onOpenCloudModal && (
             <button
               onClick={onOpenCloudModal}
@@ -84,6 +112,21 @@ export const Header: React.FC<HeaderProps> = ({
 
         {/* Desktop Quick Indicators & Install Button */}
         <div className="hidden md:flex items-center gap-3 text-xs font-mono">
+          {onSyncNow && (
+            <button
+              onClick={handleManualSync}
+              className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-sm border transition-all ${
+                isSyncing
+                  ? 'bg-surface-elevated text-accent border-accent'
+                  : 'bg-surface-subtle text-secondary border-border hover:border-accent hover:text-primary'
+              }`}
+              title="Pull latest data from Supabase"
+            >
+              <RefreshCw size={12} className={isSyncing ? "animate-spin" : ""} />
+              <span>{isSyncing ? 'Syncing...' : 'Sync Cloud'}</span>
+            </button>
+          )}
+
           {/* Cloud Sync Status Pill */}
           {onOpenCloudModal && (
             <button
