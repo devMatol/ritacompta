@@ -89,13 +89,14 @@ export const InventoryTab: React.FC<InventoryTabProps> = ({
   }, [items, search, selectedCategory, statusFilter, sortBy, vintedCatalog]);
 
   const handlePromptSetPrice = (item: Item) => {
-    const promptMsg = item.purchasePrice > 0
-      ? `Edit purchase cost for ${item.brand} - ${item.title} (€):`
-      : `Enter your actual purchase cost for "${item.brand} - ${item.title}" (€):`;
-    const initialVal = item.purchasePrice > 0 ? String(item.purchasePrice) : "0";
-    const p = prompt(promptMsg, initialVal);
+    const currentCost = typeof item.purchasePrice === 'number' ? item.purchasePrice : 0;
+    const p = prompt(
+      `Edit purchase cost for "${item.brand} - ${item.title}" (€):\n(Enter 0 if this item was free, a gift, or from personal wardrobe)`,
+      String(currentCost)
+    );
     if (p !== null && !isNaN(parseFloat(p))) {
-      onUpdatePurchasePrice(item.id, parseFloat(p));
+      const val = Math.max(0, parseFloat(p));
+      onUpdatePurchasePrice(item.id, val);
     }
   };
 
@@ -193,7 +194,7 @@ export const InventoryTab: React.FC<InventoryTabProps> = ({
                 <option value="price_desc">Sort: Price (High - Low)</option>
                 <option value="price_asc">Sort: Price (Low - High)</option>
                 <option value="margin_desc">Sort: Margin (High - Low)</option>
-                <option value="unpriced_first">Sort: Unpriced First</option>
+                <option value="unpriced_first">Sort: 0 € Cost First</option>
               </select>
               <ArrowUpDown size={12} className="absolute right-3 top-1/2 -translate-y-1/2 text-tertiary pointer-events-none" />
             </div>
@@ -352,16 +353,12 @@ export const InventoryTab: React.FC<InventoryTabProps> = ({
                     <div className="grid grid-cols-3 gap-1.5 p-2 bg-surface-subtle border border-border rounded-sm mb-4 text-center">
                       <div>
                         <div className="text-[10px] uppercase font-mono tracking-wider text-tertiary">Cost</div>
-                        {cost > 0 ? (
-                          <div className="font-mono text-xs font-bold text-primary">{cost} €</div>
-                        ) : (
-                          <button
-                            onClick={() => handlePromptSetPrice(item)}
-                            className="text-[10px] font-bold text-warning underline block mx-auto hover:text-primary"
-                          >
-                            Set cost
-                          </button>
-                        )}
+                        <div className="font-mono text-xs font-bold text-primary flex items-center justify-center gap-1">
+                          <span>{cost} €</span>
+                          {cost === 0 && (
+                            <span className="text-[9px] font-normal text-secondary font-mono">(0)</span>
+                          )}
+                        </div>
                       </div>
 
                       <div className="border-x border-border">
@@ -373,11 +370,9 @@ export const InventoryTab: React.FC<InventoryTabProps> = ({
 
                       <div>
                         <div className="text-[10px] uppercase font-mono tracking-wider text-tertiary">Margin</div>
-                        {cost > 0 ? (
-                          <div className="font-mono text-xs font-bold text-profit">+{potentialMargin} €</div>
-                        ) : (
-                          <div className="font-mono text-[10px] text-tertiary italic">-</div>
-                        )}
+                        <div className="font-mono text-xs font-bold text-profit">
+                          +{potentialMargin} €
+                        </div>
                       </div>
                     </div>
                   </div>
@@ -388,7 +383,7 @@ export const InventoryTab: React.FC<InventoryTabProps> = ({
                       onClick={() => handlePromptSetPrice(item)}
                       className="flex-1 py-2 text-xs font-semibold bg-surface border border-border-strong hover:border-accent text-secondary hover:text-primary rounded-sm transition-all"
                     >
-                      {cost > 0 ? 'Edit Cost' : 'Set Cost'}
+                      Edit Cost ({cost} €)
                     </button>
 
                     <button
@@ -455,34 +450,21 @@ export const InventoryTab: React.FC<InventoryTabProps> = ({
                         {item.size}
                       </td>
                       <td className="py-3 px-3">
-                        {cost > 0 ? (
-                          <div className="flex items-center gap-1.5">
-                            <span className="font-mono text-xs font-bold text-primary">{cost} €</span>
-                            <button
-                              onClick={() => handlePromptSetPrice(item)}
-                              className="text-[10px] text-tertiary hover:text-accent hover:underline"
-                            >
-                              edit
-                            </button>
-                          </div>
-                        ) : (
+                        <div className="flex items-center gap-1.5">
+                          <span className="font-mono text-xs font-bold text-primary">{cost} €</span>
                           <button
                             onClick={() => handlePromptSetPrice(item)}
-                            className="inline-flex items-center gap-1 text-[11px] font-semibold text-warning bg-warning-soft border border-warning/30 px-2 py-0.5 rounded-sm hover:brightness-95 transition-all"
+                            className="text-[10px] text-tertiary hover:text-accent hover:underline"
                           >
-                            Set cost price
+                            edit
                           </button>
-                        )}
+                        </div>
                       </td>
                       <td className="py-3 px-3 font-mono text-xs text-secondary">
                         {target || '-'} €
                       </td>
-                      <td className="py-3 px-3 font-mono text-xs font-bold">
-                        {cost > 0 ? (
-                          <span className="text-profit">+{potentialMargin} €</span>
-                        ) : (
-                          <span className="text-tertiary text-[11px] italic font-normal">Cost needed</span>
-                        )}
+                      <td className="py-3 px-3 font-mono text-xs font-bold text-profit">
+                        +{potentialMargin} €
                       </td>
                       <td className="py-3 px-3">
                         {match.matched ? (

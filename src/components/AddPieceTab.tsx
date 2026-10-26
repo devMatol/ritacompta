@@ -51,10 +51,11 @@ export const AddPieceTab: React.FC<AddPieceTabProps> = ({
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!brand || !title || !purchasePrice) return;
+    if (!brand.trim() || !title.trim()) return;
 
-    const pPrice = parseFloat(purchasePrice);
-    const tPrice = targetPrice ? parseFloat(targetPrice) : pPrice * 2.5;
+    const pPrice = purchasePrice === '' ? 0 : Math.max(0, parseFloat(purchasePrice) || 0);
+    const parsedTarget = targetPrice !== '' ? parseFloat(targetPrice) : NaN;
+    const tPrice = !isNaN(parsedTarget) ? Math.max(0, parsedTarget) : (pPrice > 0 ? pPrice * 2.5 : 0);
 
     const newItem: Item = {
       id: `LOT-0${existingItemsCount + 1}`,
@@ -251,18 +252,26 @@ export const AddPieceTab: React.FC<AddPieceTabProps> = ({
         {/* Prices */}
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <div>
-            <label className="block text-xs uppercase tracking-wider font-semibold text-secondary mb-1.5">
-              Purchase Cost (€)
-            </label>
+            <div className="flex items-center justify-between mb-1.5">
+              <label className="text-xs uppercase tracking-wider font-semibold text-secondary">
+                Purchase Cost (€)
+              </label>
+              <span className="font-mono text-[11px] text-profit font-semibold">
+                Can be 0 € (Personal / Free)
+              </span>
+            </div>
             <input
               type="number"
               step="0.5"
-              required
-              placeholder="e.g. 25"
+              min="0"
+              placeholder="0 (e.g. 0 if personal wardrobe or gift)"
               value={purchasePrice}
               onChange={(e) => setPurchasePrice(e.target.value)}
               className="w-full px-3 py-2 font-mono text-sm bg-surface border border-border-strong rounded-sm outline-none focus:border-accent"
             />
+            <p className="text-[11px] text-tertiary mt-1">
+              Enter 0 € for personal dressing items, free stock, or gifts.
+            </p>
           </div>
 
           <div>
@@ -272,7 +281,8 @@ export const AddPieceTab: React.FC<AddPieceTabProps> = ({
             <input
               type="number"
               step="0.5"
-              placeholder="e.g. 75"
+              min="0"
+              placeholder="e.g. 75 (desired sale price)"
               value={targetPrice}
               onChange={(e) => setTargetPrice(e.target.value)}
               className="w-full px-3 py-2 font-mono text-sm bg-surface border border-border-strong rounded-sm outline-none focus:border-accent"

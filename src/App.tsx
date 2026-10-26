@@ -303,12 +303,12 @@ export const App: React.FC = () => {
 
   const handleQuickAddVintedToCompta = async (vnt: VintedItem) => {
     const costStr = prompt(
-      `Enter your actual purchase price for "${vnt.brand} - ${vnt.title}" (€):\n(Leave empty to fill it in later)`,
+      `Enter your actual purchase price for "${vnt.brand} - ${vnt.title}" (€):\n(Enter 0 if this item is from personal dressing, free, or a gift)`,
       "0"
     );
     if (costStr === null) return;
 
-    const cost = parseFloat(costStr) || 0;
+    const cost = Math.max(0, parseFloat(costStr) || 0);
     const newItem: Item = {
       id: `LOT-0${items.length + sales.length + 1}`,
       brand: vnt.brand,

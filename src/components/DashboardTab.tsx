@@ -44,7 +44,7 @@ export const DashboardTab: React.FC<DashboardTabProps> = ({
   const totalTurnover = sales.reduce((acc, s) => acc + Number(s.salePrice), 0);
   const totalCost = sales.reduce((acc, s) => acc + Number(s.purchasePrice), 0);
   const netMargin = totalTurnover - totalCost;
-  const avgRoi = totalCost > 0 ? Math.round((netMargin / totalCost) * 100) : 0;
+  const avgRoi = totalCost > 0 ? Math.round((netMargin / totalCost) * 100) : (totalTurnover > 0 ? 100 : 0);
 
   let totalDays = 0;
   sales.forEach(s => {
@@ -266,7 +266,7 @@ export const DashboardTab: React.FC<DashboardTabProps> = ({
             </div>
             <div className="font-mono text-2xl font-bold text-primary my-1">{vCA.toLocaleString('en-US')} €</div>
             <div className="text-xs text-secondary">
-              Net margin: <strong className="text-profit">+{vMargin} €</strong> ({vCost > 0 ? Math.round((vMargin / vCost) * 100) : 0}% ROI)
+              Net margin: <strong className="text-profit">+{vMargin} €</strong> ({vCost > 0 ? Math.round((vMargin / vCost) * 100) : (vCA > 0 ? 100 : 0)}% ROI)
             </div>
           </div>
 
@@ -277,7 +277,7 @@ export const DashboardTab: React.FC<DashboardTabProps> = ({
             </div>
             <div className="font-mono text-2xl font-bold text-primary my-1">{mCA.toLocaleString('en-US')} €</div>
             <div className="text-xs text-secondary">
-              Net margin: <strong className="text-profit">+{mMargin} €</strong> ({mCost > 0 ? Math.round((mMargin / mCost) * 100) : 0}% ROI)
+              Net margin: <strong className="text-profit">+{mMargin} €</strong> ({mCost > 0 ? Math.round((mMargin / mCost) * 100) : (mCA > 0 ? 100 : 0)}% ROI)
             </div>
           </div>
         </div>
@@ -432,8 +432,9 @@ export const DashboardTab: React.FC<DashboardTabProps> = ({
                 </tr>
               ) : (
                 filteredSales.map(sale => {
-                  const margin = sale.salePrice - sale.purchasePrice;
-                  const roi = sale.purchasePrice > 0 ? Math.round((margin / sale.purchasePrice) * 100) : 0;
+                  const margin = sale.salePrice - Number(sale.purchasePrice || 0);
+                  const cost = Number(sale.purchasePrice || 0);
+                  const roi = cost > 0 ? Math.round((margin / cost) * 100) : 100;
                   const days = Math.max(1, Math.round((new Date(sale.saleDate).getTime() - new Date(sale.purchaseDate).getTime()) / (1000 * 60 * 60 * 24)));
 
                   return (
