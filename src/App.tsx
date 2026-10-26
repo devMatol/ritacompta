@@ -74,14 +74,20 @@ export const App: React.FC = () => {
           const localItems = await db.items.toArray();
           const localMap = new Map(localItems.map(i => [i.id, i]));
           
-          // Smart merge: Never overwrite an existing local price with null.
-          // If local has a price and remote was set to null, restore local price to cloud!
+          // Smart merge: Never overwrite an existing valid local price with null.
+          // An item only has a valid local price if purchasePrice > 0 or (purchasePrice === 0 && costExplicitlySet === true).
+          // Untouched/legacy items with 0 or null stay null (empty / vide).
           const mergedItems: Item[] = [];
           const toPushToCloud: Item[] = [];
 
           for (const remote of remoteItems) {
             const local = localMap.get(remote.id);
-            if (local && local.purchasePrice !== null && local.purchasePrice !== undefined && remote.purchasePrice === null) {
+            const localHasRealPrice = local && (
+              (typeof local.purchasePrice === 'number' && local.purchasePrice > 0) ||
+              (local.purchasePrice === 0 && local.costExplicitlySet === true)
+            );
+
+            if (remote.purchasePrice === null && localHasRealPrice) {
               mergedItems.push(local);
               toPushToCloud.push(local);
             } else {
@@ -169,9 +175,14 @@ export const App: React.FC = () => {
 
               // Price protection: if remote is null, never wipe out a valid local price
               const localExisting = await db.items.get(r.id);
-              const finalPrice = (remotePrice === null && localExisting && localExisting.purchasePrice !== null && localExisting.purchasePrice !== undefined)
+              const localHasPrice = localExisting && (
+                (typeof localExisting.purchasePrice === 'number' && localExisting.purchasePrice > 0) ||
+                (localExisting.purchasePrice === 0 && localExisting.costExplicitlySet === true)
+              );
+              const finalPrice = (remotePrice === null && localHasPrice)
                 ? localExisting.purchasePrice
                 : remotePrice;
+              const finalExplicit = finalPrice !== null && (finalPrice > 0 || (localExisting ? localExisting.costExplicitlySet === true : true));
 
               await db.items.put({
                 id: r.id,
@@ -185,7 +196,7 @@ export const App: React.FC = () => {
                 photo: r.photo || '',
                 purchaseDate: r.purchase_date || '',
                 vintedId: r.vinted_id,
-                costExplicitlySet: Boolean(r.cost_explicitly_set ?? (finalPrice !== null))
+                costExplicitlySet: finalExplicit
               });
             } else if (payload.eventType === 'DELETE') {
               await db.items.delete(payload.old.id);

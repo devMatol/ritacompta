@@ -34,13 +34,13 @@ export const DashboardTab: React.FC<DashboardTabProps> = ({
   // Active Stock Valuation calculations
   const stockCount = items.length;
   const stockTargetValue = items.reduce((acc, i) => {
-    const costSet = isCostSet(i.purchasePrice);
+    const costSet = isCostSet(i.purchasePrice, i.costExplicitlySet);
     const cost = costSet ? Number(i.purchasePrice) : 0;
     const val = Number(i.targetPrice) || (costSet && cost > 0 ? cost * 2.5 : 0);
     return acc + val;
   }, 0);
   const stockCostValue = items.reduce((acc, i) => {
-    const costSet = isCostSet(i.purchasePrice);
+    const costSet = isCostSet(i.purchasePrice, i.costExplicitlySet);
     return acc + (costSet ? Number(i.purchasePrice) : 0);
   }, 0);
   const potentialProfit = stockTargetValue - stockCostValue;

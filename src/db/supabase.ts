@@ -54,6 +54,11 @@ export function getSupabaseClient(): SupabaseClient | null {
 // Convert DB snake_case to Item
 function rowToItem(row: any): Item {
   const hasCost = row.purchase_price !== null && row.purchase_price !== undefined && row.purchase_price !== '';
+  const numPrice = hasCost ? Number(row.purchase_price) : null;
+  const isExplicit = row.cost_explicitly_set !== undefined
+    ? Boolean(row.cost_explicitly_set)
+    : (numPrice !== null && !isNaN(numPrice));
+
   return {
     id: row.id,
     brand: row.brand,
@@ -61,17 +66,26 @@ function rowToItem(row: any): Item {
     category: row.category,
     size: row.size || '',
     source: row.source || 'Flea Market',
-    purchasePrice: hasCost ? Number(row.purchase_price) : null,
+    purchasePrice: numPrice,
     targetPrice: Number(row.target_price) || 0,
     photo: row.photo || '',
     purchaseDate: row.purchase_date || '',
     vintedId: row.vinted_id,
-    costExplicitlySet: Boolean(row.cost_explicitly_set ?? hasCost)
+    costExplicitlySet: isExplicit
   };
 }
 
 // Convert Item to DB snake_case
 function itemToRow(item: Item) {
+  let priceToSave: number | null = null;
+  if (item.purchasePrice !== null && item.purchasePrice !== undefined) {
+    if (item.purchasePrice > 0) {
+      priceToSave = item.purchasePrice;
+    } else if (item.purchasePrice === 0) {
+      priceToSave = item.costExplicitlySet ? 0 : null;
+    }
+  }
+
   return {
     id: item.id,
     brand: item.brand,
@@ -79,7 +93,7 @@ function itemToRow(item: Item) {
     category: item.category,
     size: item.size,
     source: item.source,
-    purchase_price: item.purchasePrice !== null && item.purchasePrice !== undefined ? item.purchasePrice : null,
+    purchase_price: priceToSave,
     target_price: item.targetPrice,
     photo: item.photo,
     purchase_date: item.purchaseDate,

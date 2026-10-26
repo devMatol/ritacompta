@@ -30,7 +30,7 @@ export const InventoryTab: React.FC<InventoryTabProps> = ({
   const categories = useMemo(() => ['ALL', ...Array.from(new Set(items.map(i => i.category)))], [items]);
 
   // Counts for filter pills: only items where isCostSet is false need costs
-  const unpricedCount = useMemo(() => items.filter(i => !isCostSet(i.purchasePrice)).length, [items]);
+  const unpricedCount = useMemo(() => items.filter(i => !isCostSet(i.purchasePrice, i.costExplicitlySet)).length, [items]);
   const matchedCount = useMemo(() => items.filter(i => smartMatch(i, vintedCatalog).matched).length, [items, vintedCatalog]);
   const notMatchedCount = items.length - matchedCount;
 
@@ -49,7 +49,7 @@ export const InventoryTab: React.FC<InventoryTabProps> = ({
       // 3. Status filter
       let matchesStatus = true;
       if (statusFilter === 'unpriced') {
-        matchesStatus = !isCostSet(item.purchasePrice);
+        matchesStatus = !isCostSet(item.purchasePrice, item.costExplicitlySet);
       } else if (statusFilter === 'vinted_matched') {
         matchesStatus = smartMatch(item, vintedCatalog).matched;
       } else if (statusFilter === 'not_on_vinted') {
@@ -61,8 +61,8 @@ export const InventoryTab: React.FC<InventoryTabProps> = ({
 
     // Sort logic
     result.sort((a, b) => {
-      const aSet = isCostSet(a.purchasePrice);
-      const bSet = isCostSet(b.purchasePrice);
+      const aSet = isCostSet(a.purchasePrice, a.costExplicitlySet);
+      const bSet = isCostSet(b.purchasePrice, b.costExplicitlySet);
       const aCost = aSet ? Number(a.purchasePrice) : 0;
       const bCost = bSet ? Number(b.purchasePrice) : 0;
       const aTarget = Number(a.targetPrice) || (aSet ? aCost * 2.5 : 0);
@@ -93,7 +93,7 @@ export const InventoryTab: React.FC<InventoryTabProps> = ({
   }, [items, search, selectedCategory, statusFilter, sortBy, vintedCatalog]);
 
   const handlePromptSetPrice = (item: Item) => {
-    const isSet = isCostSet(item.purchasePrice);
+    const isSet = isCostSet(item.purchasePrice, item.costExplicitlySet);
     const initialVal = isSet ? String(item.purchasePrice) : "";
     const p = prompt(
       `Enter purchase cost for "${item.brand} - ${item.title}" (€):\n• Enter 0 if free / personal wardrobe\n• Leave blank/empty if cost is not yet known`,
@@ -291,7 +291,7 @@ export const InventoryTab: React.FC<InventoryTabProps> = ({
         /* 4. CARDS GRID VIEW (Responsive: 1 col mobile, 2 col tablet, 3-4 col desktop) */
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 sm:gap-5">
           {processedItems.map(item => {
-            const costSet = isCostSet(item.purchasePrice);
+            const costSet = isCostSet(item.purchasePrice, item.costExplicitlySet);
             const cost = costSet ? Number(item.purchasePrice) : null;
             const target = Number(item.targetPrice) || (costSet ? cost! * 2.5 : 0);
             const potentialMargin = costSet ? target - cost! : null;
@@ -454,7 +454,7 @@ export const InventoryTab: React.FC<InventoryTabProps> = ({
               </thead>
               <tbody className="divide-y divide-border">
                 {processedItems.map(item => {
-                  const costSet = isCostSet(item.purchasePrice);
+                  const costSet = isCostSet(item.purchasePrice, item.costExplicitlySet);
                   const cost = costSet ? Number(item.purchasePrice) : null;
                   const target = Number(item.targetPrice) || (costSet ? cost! * 2.5 : 0);
                   const potentialMargin = costSet ? target - cost! : null;
