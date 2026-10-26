@@ -55,8 +55,7 @@ export function getSupabaseClient(): SupabaseClient | null {
 function rowToItem(row: any): Item {
   const hasCost = row.purchase_price !== null && row.purchase_price !== undefined && row.purchase_price !== '';
   const numPrice = hasCost ? Number(row.purchase_price) : null;
-  // All items with 0 or less are strictly null (vide) and will appear in "need costs"
-  const finalPrice = (numPrice !== null && !isNaN(numPrice) && numPrice > 0) ? numPrice : null;
+  const finalPrice = (numPrice !== null && !isNaN(numPrice) && numPrice >= 0) ? numPrice : null;
 
   return {
     id: row.id,
@@ -76,10 +75,13 @@ function rowToItem(row: any): Item {
 
 // Convert Item to DB snake_case
 function itemToRow(item: Item) {
-  // Only prices > 0 are persisted as a number; anything 0 or null is saved as NULL
-  const priceToSave = (item.purchasePrice !== null && item.purchasePrice !== undefined && item.purchasePrice > 0)
-    ? item.purchasePrice
-    : null;
+  let priceToSave: number | null = null;
+  if (item.purchasePrice !== null && item.purchasePrice !== undefined && (item.purchasePrice as any) !== '') {
+    const num = Number(item.purchasePrice);
+    if (!isNaN(num) && num >= 0) {
+      priceToSave = num;
+    }
+  }
 
   return {
     id: item.id,
@@ -168,7 +170,9 @@ export async function cloudBulkAddItems(items: Item[]): Promise<boolean> {
 export async function cloudUpdateItemPrice(itemId: string, newPrice: number | null): Promise<boolean> {
   const client = getSupabaseClient();
   if (!client) return false;
-  const priceToSave = (newPrice !== null && newPrice !== undefined && newPrice > 0) ? newPrice : null;
+  const priceToSave = (newPrice !== null && newPrice !== undefined && (newPrice as any) !== '' && !isNaN(Number(newPrice)) && Number(newPrice) >= 0)
+    ? Number(newPrice)
+    : null;
   const { error } = await client.from('items').update({ purchase_price: priceToSave }).eq('id', itemId);
   if (error) {
     console.error('Error updating price in cloud:', error);

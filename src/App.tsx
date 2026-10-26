@@ -82,7 +82,7 @@ export const App: React.FC = () => {
 
           for (const remote of remoteItems) {
             const local = localMap.get(remote.id);
-            const localHasRealPrice = local && typeof local.purchasePrice === 'number' && local.purchasePrice > 0;
+            const localHasRealPrice = local && typeof local.purchasePrice === 'number' && !isNaN(local.purchasePrice) && local.purchasePrice >= 0 && local.costExplicitlySet === true;
 
             if (remote.purchasePrice === null && localHasRealPrice) {
               mergedItems.push(local);
@@ -143,16 +143,6 @@ export const App: React.FC = () => {
   useEffect(() => {
     initDatabase();
 
-    // Clean up local DB: ensure any item with cost <= 0 is converted to null (vide)
-    db.items.toArray().then(localItems => {
-      const itemsToNull = localItems.filter(i => i.purchasePrice !== null && Number(i.purchasePrice) <= 0);
-      if (itemsToNull.length > 0) {
-        itemsToNull.forEach(i => {
-          db.items.update(i.id, { purchasePrice: null, costExplicitlySet: false });
-        });
-      }
-    });
-
     // Check iOS & standalone
     const ua = window.navigator.userAgent.toLowerCase();
     setIsIos(/iphone|ipad|ipod/.test(ua));
@@ -179,11 +169,11 @@ export const App: React.FC = () => {
               const r = payload.new;
               const hasCost = r.purchase_price !== null && r.purchase_price !== undefined && r.purchase_price !== '';
               const numPrice = hasCost ? Number(r.purchase_price) : null;
-              const remotePrice = (numPrice !== null && !isNaN(numPrice) && numPrice > 0) ? numPrice : null;
+              const remotePrice = (numPrice !== null && !isNaN(numPrice) && numPrice >= 0) ? numPrice : null;
 
               // Price protection: if remote is null, never wipe out a valid local price
               const localExisting = await db.items.get(r.id);
-              const localHasPrice = localExisting && typeof localExisting.purchasePrice === 'number' && localExisting.purchasePrice > 0;
+              const localHasPrice = localExisting && typeof localExisting.purchasePrice === 'number' && localExisting.purchasePrice >= 0 && localExisting.costExplicitlySet === true;
               const finalPrice = (remotePrice === null && localHasPrice)
                 ? localExisting.purchasePrice
                 : remotePrice;
@@ -342,7 +332,9 @@ export const App: React.FC = () => {
   };
 
   const handleUpdatePurchasePrice = async (itemId: string, newPrice: number | null) => {
-    const validPrice = (newPrice !== null && newPrice !== undefined && newPrice > 0) ? newPrice : null;
+    const validPrice = (newPrice !== null && newPrice !== undefined && (newPrice as any) !== '' && !isNaN(Number(newPrice)) && Number(newPrice) >= 0)
+      ? Number(newPrice)
+      : null;
     await db.items.update(itemId, {
       purchasePrice: validPrice,
       costExplicitlySet: validPrice !== null

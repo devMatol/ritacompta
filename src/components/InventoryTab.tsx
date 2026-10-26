@@ -96,7 +96,7 @@ export const InventoryTab: React.FC<InventoryTabProps> = ({
     const isSet = isCostSet(item.purchasePrice);
     const initialVal = isSet ? String(item.purchasePrice) : "";
     const p = prompt(
-      `Enter purchase cost for "${item.brand} - ${item.title}" (€):\n• Enter price in € (must be > 0)\n• Leave empty / 0 if cost is not yet set`,
+      `Enter purchase cost for "${item.brand} - ${item.title}" (€):\n• Enter 0 if free / personal wardrobe (gratuit)\n• Enter cost price in €\n• Leave blank to unset (needs cost)`,
       initialVal
     );
     if (p === null) return; // Cancelled
@@ -106,8 +106,8 @@ export const InventoryTab: React.FC<InventoryTabProps> = ({
       onUpdatePurchasePrice(item.id, null);
     } else {
       const val = parseFloat(trimmed);
-      if (!isNaN(val)) {
-        onUpdatePurchasePrice(item.id, val > 0 ? val : null);
+      if (!isNaN(val) && val >= 0) {
+        onUpdatePurchasePrice(item.id, val);
       }
     }
   };
@@ -369,6 +369,9 @@ export const InventoryTab: React.FC<InventoryTabProps> = ({
                         {costSet ? (
                           <div className="font-mono text-xs font-bold text-primary flex items-center justify-center gap-1">
                             <span>{cost} €</span>
+                            {cost === 0 && (
+                              <span className="text-[9px] text-profit font-semibold uppercase tracking-wider">(Gratuit)</span>
+                            )}
                           </div>
                         ) : (
                           <button

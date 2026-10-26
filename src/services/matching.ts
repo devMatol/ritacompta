@@ -13,7 +13,7 @@ export function cleanStr(s?: string): string {
 export function isCostSet(price: number | null | undefined): boolean {
   if (price === null || price === undefined || (price as any) === '') return false;
   const num = Number(price);
-  return !isNaN(num) && num > 0;
+  return !isNaN(num) && num >= 0;
 }
 
 export function guessCategory(title: string): string {
