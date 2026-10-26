@@ -10,12 +10,10 @@ export function cleanStr(s?: string): string {
     .trim();
 }
 
-export function isCostSet(price: number | null | undefined, explicitlySet?: boolean): boolean {
+export function isCostSet(price: number | null | undefined): boolean {
   if (price === null || price === undefined || (price as any) === '') return false;
   const num = Number(price);
-  if (isNaN(num)) return false;
-  if (num === 0) return Boolean(explicitlySet);
-  return num > 0;
+  return !isNaN(num) && num > 0;
 }
 
 export function guessCategory(title: string): string {

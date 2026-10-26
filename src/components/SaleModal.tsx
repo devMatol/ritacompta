@@ -63,13 +63,8 @@ export const SaleModal: React.FC<SaleModalProps> = ({
             <div className="font-heading font-bold text-sm text-primary">{item.brand} — {item.title}</div>
             <div className="text-xs text-secondary mt-0.5">
               Purchase cost:{' '}
-              {isCostSet(item.purchasePrice, item.costExplicitlySet) ? (
-                <>
-                  <span className="font-mono font-semibold text-primary">{item.purchasePrice} €</span>
-                  {Number(item.purchasePrice) === 0 && (
-                    <span className="text-profit ml-1.5 font-mono text-[11px] font-semibold">(0 € cost · 100% margin)</span>
-                  )}
-                </>
+              {isCostSet(item.purchasePrice) ? (
+                <span className="font-mono font-semibold text-primary">{item.purchasePrice} €</span>
               ) : (
                 <span className="font-mono text-warning font-semibold">Not set (needs cost)</span>
               )}

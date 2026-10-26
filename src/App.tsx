@@ -75,17 +75,14 @@ export const App: React.FC = () => {
           const localMap = new Map(localItems.map(i => [i.id, i]));
           
           // Smart merge: Never overwrite an existing valid local price with null.
-          // An item only has a valid local price if purchasePrice > 0 or (purchasePrice === 0 && costExplicitlySet === true).
+          // An item only has a valid local price if purchasePrice > 0.
           // Untouched/legacy items with 0 or null stay null (empty / vide).
           const mergedItems: Item[] = [];
           const toPushToCloud: Item[] = [];
 
           for (const remote of remoteItems) {
             const local = localMap.get(remote.id);
-            const localHasRealPrice = local && (
-              (typeof local.purchasePrice === 'number' && local.purchasePrice > 0) ||
-              (local.purchasePrice === 0 && local.costExplicitlySet === true)
-            );
+            const localHasRealPrice = local && typeof local.purchasePrice === 'number' && local.purchasePrice > 0;
 
             if (remote.purchasePrice === null && localHasRealPrice) {
               mergedItems.push(local);
@@ -146,6 +143,16 @@ export const App: React.FC = () => {
   useEffect(() => {
     initDatabase();
 
+    // Clean up local DB: ensure any item with cost <= 0 is converted to null (vide)
+    db.items.toArray().then(localItems => {
+      const itemsToNull = localItems.filter(i => i.purchasePrice !== null && Number(i.purchasePrice) <= 0);
+      if (itemsToNull.length > 0) {
+        itemsToNull.forEach(i => {
+          db.items.update(i.id, { purchasePrice: null, costExplicitlySet: false });
+        });
+      }
+    });
+
     // Check iOS & standalone
     const ua = window.navigator.userAgent.toLowerCase();
     setIsIos(/iphone|ipad|ipod/.test(ua));
@@ -171,18 +178,15 @@ export const App: React.FC = () => {
             if (payload.eventType === 'INSERT' || payload.eventType === 'UPDATE') {
               const r = payload.new;
               const hasCost = r.purchase_price !== null && r.purchase_price !== undefined && r.purchase_price !== '';
-              const remotePrice = hasCost ? Number(r.purchase_price) : null;
+              const numPrice = hasCost ? Number(r.purchase_price) : null;
+              const remotePrice = (numPrice !== null && !isNaN(numPrice) && numPrice > 0) ? numPrice : null;
 
               // Price protection: if remote is null, never wipe out a valid local price
               const localExisting = await db.items.get(r.id);
-              const localHasPrice = localExisting && (
-                (typeof localExisting.purchasePrice === 'number' && localExisting.purchasePrice > 0) ||
-                (localExisting.purchasePrice === 0 && localExisting.costExplicitlySet === true)
-              );
+              const localHasPrice = localExisting && typeof localExisting.purchasePrice === 'number' && localExisting.purchasePrice > 0;
               const finalPrice = (remotePrice === null && localHasPrice)
                 ? localExisting.purchasePrice
                 : remotePrice;
-              const finalExplicit = finalPrice !== null && (finalPrice > 0 || (localExisting ? localExisting.costExplicitlySet === true : true));
 
               await db.items.put({
                 id: r.id,
@@ -196,7 +200,7 @@ export const App: React.FC = () => {
                 photo: r.photo || '',
                 purchaseDate: r.purchase_date || '',
                 vintedId: r.vinted_id,
-                costExplicitlySet: finalExplicit
+                costExplicitlySet: finalPrice !== null
               });
             } else if (payload.eventType === 'DELETE') {
               await db.items.delete(payload.old.id);
@@ -338,12 +342,13 @@ export const App: React.FC = () => {
   };
 
   const handleUpdatePurchasePrice = async (itemId: string, newPrice: number | null) => {
+    const validPrice = (newPrice !== null && newPrice !== undefined && newPrice > 0) ? newPrice : null;
     await db.items.update(itemId, {
-      purchasePrice: newPrice,
-      costExplicitlySet: newPrice !== null
+      purchasePrice: validPrice,
+      costExplicitlySet: validPrice !== null
     });
     if (getSupabaseConfig().isConfigured) {
-      await cloudUpdateItemPrice(itemId, newPrice);
+      await cloudUpdateItemPrice(itemId, validPrice);
     }
   };
 
