@@ -75,14 +75,14 @@ export const App: React.FC = () => {
           const localMap = new Map(localItems.map(i => [i.id, i]));
           
           // Smart merge: Never overwrite an existing valid local price with null.
-          // An item only has a valid local price if purchasePrice > 0.
-          // Untouched/legacy items with 0 or null stay null (empty / vide).
+          // An item only has a valid local price to push to cloud if purchasePrice > 0.
+          // If remote is null and local is 0, local is overwritten with null.
           const mergedItems: Item[] = [];
           const toPushToCloud: Item[] = [];
 
           for (const remote of remoteItems) {
             const local = localMap.get(remote.id);
-            const localHasRealPrice = local && typeof local.purchasePrice === 'number' && !isNaN(local.purchasePrice) && local.purchasePrice >= 0 && local.costExplicitlySet === true;
+            const localHasRealPrice = local && typeof local.purchasePrice === 'number' && !isNaN(local.purchasePrice) && local.purchasePrice > 0;
 
             if (remote.purchasePrice === null && localHasRealPrice) {
               mergedItems.push(local);
@@ -142,6 +142,16 @@ export const App: React.FC = () => {
   // Init DB, Cloud & Realtime on Mount
   useEffect(() => {
     initDatabase();
+
+    // Purge legacy 0 values in local Dexie so old cache never corrupts cloud
+    db.items.toArray().then(localItems => {
+      const itemsToFix = localItems.filter(i => i.purchasePrice !== null && Number(i.purchasePrice) <= 0);
+      if (itemsToFix.length > 0) {
+        itemsToFix.forEach(i => {
+          db.items.update(i.id, { purchasePrice: null, costExplicitlySet: false });
+        });
+      }
+    });
 
     // Check iOS & standalone
     const ua = window.navigator.userAgent.toLowerCase();
