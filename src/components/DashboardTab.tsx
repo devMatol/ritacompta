@@ -134,59 +134,59 @@ export const DashboardTab: React.FC<DashboardTabProps> = ({
           )}
         </div>
 
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
           {/* Estimated Resale Value */}
-          <div className="p-4 bg-surface-subtle border border-border rounded-sm">
-            <div className="flex items-center justify-between text-xs uppercase tracking-wider text-secondary mb-1">
-              <span>Estimated Stock Value</span>
-              <DollarSign size={14} className="text-accent" />
+          <div className="p-3.5 sm:p-4 bg-surface-subtle border border-border rounded-sm">
+            <div className="flex items-center justify-between text-[11px] sm:text-xs uppercase tracking-wider text-secondary mb-1">
+              <span className="truncate">Est. Stock Value</span>
+              <DollarSign size={14} className="text-accent shrink-0 ml-1" />
             </div>
-            <div className="font-mono text-2xl sm:text-3xl font-bold text-primary">
+            <div className="font-mono text-xl sm:text-2xl lg:text-3xl font-bold text-primary truncate">
               {stockTargetValue.toLocaleString('en-US')} €
             </div>
-            <div className="text-xs text-secondary mt-1">
-              Listing / target resale price
+            <div className="text-[11px] sm:text-xs text-secondary mt-1 truncate">
+              Target resale price
             </div>
           </div>
 
           {/* Invested Capital / Purchase Cost */}
-          <div className="p-4 bg-surface-subtle border border-border rounded-sm">
-            <div className="flex items-center justify-between text-xs uppercase tracking-wider text-secondary mb-1">
-              <span>Invested Capital</span>
-              <Package size={14} className="text-tertiary" />
+          <div className="p-3.5 sm:p-4 bg-surface-subtle border border-border rounded-sm">
+            <div className="flex items-center justify-between text-[11px] sm:text-xs uppercase tracking-wider text-secondary mb-1">
+              <span className="truncate">Invested Capital</span>
+              <Package size={14} className="text-tertiary shrink-0 ml-1" />
             </div>
-            <div className="font-mono text-2xl sm:text-3xl font-bold text-secondary">
+            <div className="font-mono text-xl sm:text-2xl lg:text-3xl font-bold text-secondary truncate">
               {stockCostValue.toLocaleString('en-US')} €
             </div>
-            <div className="text-xs text-secondary mt-1">
-              Acquisition cost paid for stock
+            <div className="text-[11px] sm:text-xs text-secondary mt-1 truncate">
+              Acquisition cost paid
             </div>
           </div>
 
           {/* Potential Net Margin */}
-          <div className="p-4 bg-surface-subtle border border-border rounded-sm">
-            <div className="flex items-center justify-between text-xs uppercase tracking-wider text-secondary mb-1">
-              <span>Potential Margin</span>
-              <TrendingUp size={14} className="text-profit" />
+          <div className="p-3.5 sm:p-4 bg-surface-subtle border border-border rounded-sm">
+            <div className="flex items-center justify-between text-[11px] sm:text-xs uppercase tracking-wider text-secondary mb-1">
+              <span className="truncate">Potential Margin</span>
+              <TrendingUp size={14} className="text-profit shrink-0 ml-1" />
             </div>
-            <div className="font-mono text-2xl sm:text-3xl font-bold text-profit">
+            <div className="font-mono text-xl sm:text-2xl lg:text-3xl font-bold text-profit truncate">
               +{potentialProfit.toLocaleString('en-US')} €
             </div>
-            <div className="text-xs text-profit font-medium mt-1">
-              Estimated unrealized profit
+            <div className="text-[11px] sm:text-xs text-profit font-medium mt-1 truncate">
+              Unrealized profit
             </div>
           </div>
 
           {/* Stock Count & Avg Price */}
-          <div className="p-4 bg-surface-subtle border border-border rounded-sm">
-            <div className="flex items-center justify-between text-xs uppercase tracking-wider text-secondary mb-1">
-              <span>Stock Count</span>
-              <Boxes size={14} className="text-accent" />
+          <div className="p-3.5 sm:p-4 bg-surface-subtle border border-border rounded-sm">
+            <div className="flex items-center justify-between text-[11px] sm:text-xs uppercase tracking-wider text-secondary mb-1">
+              <span className="truncate">Stock Count</span>
+              <Boxes size={14} className="text-accent shrink-0 ml-1" />
             </div>
-            <div className="font-mono text-2xl sm:text-3xl font-bold text-primary">
+            <div className="font-mono text-xl sm:text-2xl lg:text-3xl font-bold text-primary truncate">
               {stockCount} pcs
             </div>
-            <div className="text-xs text-secondary mt-1 font-mono">
+            <div className="text-[11px] sm:text-xs text-secondary mt-1 font-mono truncate">
               ~{avgItemPrice} € avg / piece
             </div>
           </div>
@@ -194,55 +194,55 @@ export const DashboardTab: React.FC<DashboardTabProps> = ({
       </section>
 
       {/* 2. REALIZED SALES FINANCIAL KPIS */}
-      <section className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 border border-border bg-surface rounded-md overflow-hidden shadow-sm">
-        <div className="p-5 border-b sm:border-r border-border">
-          <div className="flex items-center justify-between text-xs uppercase tracking-wider text-secondary mb-1">
-            <span>Total Revenue</span>
-            <DollarSign size={14} className="text-accent" />
+      <section className="grid grid-cols-2 lg:grid-cols-4 border border-border bg-surface rounded-md overflow-hidden shadow-sm">
+        <div className="p-3.5 sm:p-5 border-r border-b lg:border-b-0 border-border">
+          <div className="flex items-center justify-between text-[11px] sm:text-xs uppercase tracking-wider text-secondary mb-1">
+            <span className="truncate">Total Revenue</span>
+            <DollarSign size={14} className="text-accent shrink-0 ml-1" />
           </div>
-          <div className="font-mono text-2xl sm:text-3xl font-semibold text-primary">
+          <div className="font-mono text-xl sm:text-2xl lg:text-3xl font-semibold text-primary truncate">
             {totalTurnover.toLocaleString('en-US')} €
           </div>
-          <div className="text-xs text-secondary mt-1">
-            Total across {sales.length} closed sale(s)
+          <div className="text-[11px] sm:text-xs text-secondary mt-1 truncate">
+            Across {sales.length} closed sale(s)
           </div>
         </div>
 
-        <div className="p-5 border-b lg:border-r border-border">
-          <div className="flex items-center justify-between text-xs uppercase tracking-wider text-secondary mb-1">
-            <span>Net Profit</span>
-            <TrendingUp size={14} className="text-profit" />
+        <div className="p-3.5 sm:p-5 border-b lg:border-b-0 lg:border-r border-border">
+          <div className="flex items-center justify-between text-[11px] sm:text-xs uppercase tracking-wider text-secondary mb-1">
+            <span className="truncate">Net Profit</span>
+            <TrendingUp size={14} className="text-profit shrink-0 ml-1" />
           </div>
-          <div className="font-mono text-2xl sm:text-3xl font-semibold text-profit">
+          <div className="font-mono text-xl sm:text-2xl lg:text-3xl font-semibold text-profit truncate">
             +{netMargin.toLocaleString('en-US')} €
           </div>
-          <div className="font-mono text-xs text-profit font-medium mt-1">
+          <div className="font-mono text-[11px] sm:text-xs text-profit font-medium mt-1 truncate">
             Avg ROI: +{avgRoi}%
           </div>
         </div>
 
-        <div className="p-5 border-b sm:border-r border-border">
-          <div className="flex items-center justify-between text-xs uppercase tracking-wider text-secondary mb-1">
-            <span>Average Order Value</span>
-            <ShoppingBag size={14} className="text-tertiary" />
+        <div className="p-3.5 sm:p-5 border-r lg:border-r border-border">
+          <div className="flex items-center justify-between text-[11px] sm:text-xs uppercase tracking-wider text-secondary mb-1">
+            <span className="truncate">Avg Order Value</span>
+            <ShoppingBag size={14} className="text-tertiary shrink-0 ml-1" />
           </div>
-          <div className="font-mono text-2xl sm:text-3xl font-semibold text-primary">
+          <div className="font-mono text-xl sm:text-2xl lg:text-3xl font-semibold text-primary truncate">
             {sales.length > 0 ? Math.round(totalTurnover / sales.length) : 0} €
           </div>
-          <div className="text-xs text-secondary mt-1">
+          <div className="text-[11px] sm:text-xs text-secondary mt-1 truncate">
             Average ticket per sale
           </div>
         </div>
 
-        <div className="p-5">
-          <div className="flex items-center justify-between text-xs uppercase tracking-wider text-secondary mb-1">
-            <span>Average Velocity</span>
-            <Clock size={14} className="text-accent" />
+        <div className="p-3.5 sm:p-5">
+          <div className="flex items-center justify-between text-[11px] sm:text-xs uppercase tracking-wider text-secondary mb-1">
+            <span className="truncate">Avg Velocity</span>
+            <Clock size={14} className="text-accent shrink-0 ml-1" />
           </div>
-          <div className="font-mono text-2xl sm:text-3xl font-semibold text-primary">
+          <div className="font-mono text-xl sm:text-2xl lg:text-3xl font-semibold text-primary truncate">
             {avgDays} Days
           </div>
-          <div className="text-xs text-accent font-medium mt-1">
+          <div className="text-[11px] sm:text-xs text-accent font-medium mt-1 truncate">
             Avg days to sell
           </div>
         </div>
