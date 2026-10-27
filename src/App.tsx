@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { useLiveQuery } from 'dexie-react-hooks';
 import { db, initDatabase, loadRealVintedDressing, seedInitialInventoryIfEmpty } from './db';
 import { Item, Sale, VintedItem } from './types';
@@ -10,7 +10,7 @@ import { VintedReconciliationTab } from './components/VintedReconciliationTab';
 import { SaleModal } from './components/SaleModal';
 import { InstallPwaModal } from './components/InstallPwaModal';
 import { CloudSyncModal } from './components/CloudSyncModal';
-import { cleanStr, guessCategory, isVintedItemImported } from './services/matching';
+import { cleanStr, guessCategory, isVintedItemImported, isSameVintedItem } from './services/matching';
 import {
   getSupabaseConfig,
   getSupabaseClient,
@@ -49,6 +49,11 @@ export const App: React.FC = () => {
   const items = useLiveQuery(() => db.items.toArray(), []) || [];
   const sales = useLiveQuery(() => db.sales.orderBy('saleDate').reverse().toArray(), []) || [];
   const vintedCatalog = useLiveQuery(() => db.vintedCatalog.toArray(), []) || [];
+
+  // Count of items sold or missing on Vinted
+  const soldOrMissingCount = useMemo(() => {
+    return items.filter(item => !vintedCatalog.some(vnt => isSameVintedItem(item, vnt))).length;
+  }, [items, vintedCatalog]);
 
   // Cloud Sync Handler
   const syncWithCloud = useCallback(async () => {
@@ -146,9 +151,9 @@ export const App: React.FC = () => {
   useEffect(() => {
     initDatabase();
 
-    // Purge legacy 0 values in local Dexie so old cache never corrupts cloud
+    // Purge legacy 0 values in local Dexie so old cache never corrupts cloud (preserve explicit 0)
     db.items.toArray().then(localItems => {
-      const itemsToFix = localItems.filter(i => i.purchasePrice !== null && Number(i.purchasePrice) <= 0);
+      const itemsToFix = localItems.filter(i => i.purchasePrice !== null && Number(i.purchasePrice) <= 0 && i.costExplicitlySet !== true);
       if (itemsToFix.length > 0) {
         itemsToFix.forEach(i => {
           db.items.update(i.id, { purchasePrice: null, costExplicitlySet: false });
@@ -417,6 +422,7 @@ export const App: React.FC = () => {
         itemsCount={items.length}
         vintedCount={vintedCatalog.length}
         salesCount={sales.length}
+        soldCount={soldOrMissingCount}
         onOpenInstallModal={() => setIsInstallModalOpen(true)}
         onOpenCloudModal={() => setIsCloudModalOpen(true)}
         onSyncNow={syncWithCloud}
@@ -463,9 +469,15 @@ export const App: React.FC = () => {
             }`}
           >
             <span>Vinted Sync</span>
-            <span className="font-mono text-xs px-2 py-0.2 bg-profit-soft text-profit rounded-full font-bold">
-              {vintedCatalog.length} listed
-            </span>
+            {soldOrMissingCount > 0 ? (
+              <span className="font-mono text-xs px-2 py-0.2 bg-amber-500/20 text-amber-600 dark:text-amber-400 border border-amber-500/40 rounded-full font-bold">
+                {soldOrMissingCount} sold
+              </span>
+            ) : (
+              <span className="font-mono text-xs px-2 py-0.2 bg-profit-soft text-profit rounded-full font-bold">
+                {vintedCatalog.length} listed
+              </span>
+            )}
           </button>
           <button
             onClick={() => setActiveTab('add')}

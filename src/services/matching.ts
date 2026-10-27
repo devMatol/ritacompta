@@ -28,83 +28,90 @@ export function guessCategory(title: string): string {
   return "Tops & Shirts";
 }
 
-export function smartMatch(piece: Item, vintedList: VintedItem[]): MatchResult {
-  let bestMatch: VintedItem | null = null;
-  let highestScore = 0;
+// Extract unique image identifier from Vinted photo URL (e.g. "c4152b67")
+export function extractPhotoHash(url?: string): string {
+  if (!url) return '';
+  const m = url.match(/\/([a-f0-9]{8,})\.(?:jpeg|jpg|png)/i);
+  return m ? m[1] : '';
+}
 
-  const pBrand = cleanStr(piece.brand);
-  const pTitle = cleanStr(piece.title);
-  const pWords = pTitle.split(/\s+/).filter(w => w.length > 2);
+const STOP_WORDS = new Set(['vintage', 'dressing', 'style', 'with', 'avec', 'the', 'size', 'taille', 'and', 'pour', 'femme', 'homme']);
 
-  for (const v of vintedList) {
-    let score = 0;
-    const vBrand = cleanStr(v.brand);
-    const vTitle = cleanStr(v.title);
+/**
+ * Robust, deterministic match between an internal item and a live Vinted item.
+ * 1. Photo hash match (exact, 100% reliable)
+ * 2. Exact clean title match
+ * 3. High-precision clean title overlap (>= 80% significant words) with brand verification
+ */
+export function isSameVintedItem(
+  stockItem: { title: string; brand?: string; photo?: string },
+  vntItem: { title: string; brand?: string; photo?: string }
+): boolean {
+  // 1. Photo hash exact match
+  const stockPhotoHash = extractPhotoHash(stockItem.photo);
+  const vntPhotoHash = extractPhotoHash(vntItem.photo);
+  if (stockPhotoHash && vntPhotoHash && stockPhotoHash === vntPhotoHash) {
+    return true;
+  }
 
-    // 1. Marque match (40 pts)
-    if (pBrand === vBrand || (pBrand.length > 3 && vBrand.includes(pBrand)) || (vBrand.length > 3 && pBrand.includes(vBrand))) {
-      score += 40;
-    } else if (pTitle.includes(vBrand) || vTitle.includes(pBrand)) {
-      score += 30;
-    }
+  // 2. Exact clean title match
+  const it = cleanStr(stockItem.title);
+  const vt = cleanStr(vntItem.title);
+  if (it && vt && it === vt) {
+    return true;
+  }
 
-    // 2. Mots-clés Titre (jusqu'à 40 pts)
-    let matchedWords = 0;
-    for (const w of pWords) {
-      if (vTitle.includes(w)) matchedWords++;
-    }
-    if (pWords.length > 0) {
-      score += Math.min(40, (matchedWords / pWords.length) * 40);
-    }
-
-    // 3. Taille match (10 pts)
-    if (piece.size && v.size && cleanStr(piece.size) === cleanStr(v.size)) {
-      score += 10;
-    }
-
-    // 4. Proximité de prix cible (10 pts)
-    if (piece.targetPrice && v.price) {
-      const ratio = Math.min(piece.targetPrice, v.price) / Math.max(piece.targetPrice, v.price);
-      if (ratio > 0.7) score += 10;
-    }
-
-    if (score > highestScore) {
-      highestScore = score;
-      bestMatch = v;
+  // 3. High-precision clean title overlap (>= 80% words) with brand match
+  if (it.length > 8 && vt.length > 8) {
+    const iWords = it.split(/\s+/).filter(w => w.length > 2 && !STOP_WORDS.has(w));
+    const vWords = vt.split(/\s+/).filter(w => w.length > 2 && !STOP_WORDS.has(w));
+    if (iWords.length > 0 && vWords.length > 0) {
+      let matched = 0;
+      for (const w of iWords) {
+        if (vWords.includes(w)) matched++;
+      }
+      const overlap = matched / Math.max(iWords.length, vWords.length);
+      if (overlap >= 0.8) {
+        const sBrand = cleanStr(stockItem.brand);
+        const vBrand = cleanStr(vntItem.brand);
+        if (sBrand && vBrand && !STOP_WORDS.has(sBrand) && !STOP_WORDS.has(vBrand)) {
+          if (sBrand === vBrand || it.includes(vBrand) || vt.includes(sBrand)) {
+            return true;
+          }
+        } else {
+          return true;
+        }
+      }
     }
   }
 
-  const isMatched = highestScore >= 45;
+  return false;
+}
+
+export function smartMatch(piece: Item, vintedList: VintedItem[]): MatchResult {
+  for (const v of vintedList) {
+    if (isSameVintedItem(piece, v)) {
+      return {
+        matched: true,
+        score: 100,
+        vintedItem: v
+      };
+    }
+  }
+
   return {
-    matched: isMatched,
-    score: Math.round(highestScore),
-    vintedItem: isMatched ? bestMatch : null
+    matched: false,
+    score: 0,
+    vintedItem: null
   };
 }
 
 export function isVintedItemImported(vnt: VintedItem, items: Item[], sales: any[] = []): boolean {
-  const vTitle = cleanStr(vnt.title);
-  if (!vTitle) return false;
-
   // 1. Check in active stock
-  const inStock = items.some(i => {
-    const iTitle = cleanStr(i.title);
-    if (iTitle === vTitle) return true;
-    if (iTitle.length > 6 && vTitle.length > 6 && (iTitle.includes(vTitle) || vTitle.includes(iTitle))) {
-      return true;
-    }
-    return smartMatch(i, [vnt]).matched;
-  });
+  const inStock = items.some(i => isSameVintedItem(i, vnt));
   if (inStock) return true;
 
   // 2. Check in sales (already sold pieces)
-  const inSales = sales.some(s => {
-    const sTitle = cleanStr(s.title);
-    if (sTitle === vTitle) return true;
-    if (sTitle.length > 6 && vTitle.length > 6 && (sTitle.includes(vTitle) || vTitle.includes(sTitle))) {
-      return true;
-    }
-    return false;
-  });
+  const inSales = (sales || []).some(s => isSameVintedItem(s, vnt));
   return inSales;
 }

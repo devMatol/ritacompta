@@ -7,6 +7,7 @@ interface HeaderProps {
   itemsCount: number;
   vintedCount: number;
   salesCount: number;
+  soldCount?: number;
   onOpenInstallModal?: () => void;
   onOpenCloudModal?: () => void;
   onSyncNow?: () => Promise<void> | void;
@@ -20,6 +21,7 @@ export const Header: React.FC<HeaderProps> = ({
   itemsCount,
   vintedCount,
   salesCount,
+  soldCount = 0,
   onOpenInstallModal,
   onOpenCloudModal,
   onSyncNow,
@@ -213,12 +215,18 @@ export const Header: React.FC<HeaderProps> = ({
             }`}
           >
             <div className="flex items-center gap-2.5">
-              <RefreshCw size={17} className="text-profit" />
+              <RefreshCw size={17} className={soldCount > 0 ? "text-amber-500" : "text-profit"} />
               <span>Vinted Sync</span>
             </div>
-            <span className="font-mono text-xs px-2 py-0.5 bg-profit-soft text-profit rounded-full font-bold">
-              {vintedCount} listed
-            </span>
+            {soldCount > 0 ? (
+              <span className="font-mono text-xs px-2 py-0.5 bg-amber-500/20 text-amber-600 dark:text-amber-400 border border-amber-500/40 rounded-full font-bold">
+                {soldCount} sold
+              </span>
+            ) : (
+              <span className="font-mono text-xs px-2 py-0.5 bg-profit-soft text-profit rounded-full font-bold">
+                {vintedCount} listed
+              </span>
+            )}
           </button>
 
           {/* 4. Quick Add (+ Photo) */}

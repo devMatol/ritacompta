@@ -1,6 +1,6 @@
 import React, { useState, useMemo } from 'react';
 import { Item, Sale, VintedItem } from '../types';
-import { cleanStr, smartMatch, isVintedItemImported } from '../services/matching';
+import { isSameVintedItem, isVintedItemImported } from '../services/matching';
 import { ExternalLink, Search, RefreshCw, CheckCircle2, Plus, Package, Sparkles, AlertTriangle } from 'lucide-react';
 
 interface VintedReconciliationTabProps {
@@ -29,13 +29,7 @@ export const VintedReconciliationTab: React.FC<VintedReconciliationTabProps> = (
   // 1. Stock items that are NO LONGER present on Vinted (SOLDS / MISSING on Vinted)
   const soldOrMissingOnVinted = useMemo(() => {
     return items.filter(item => {
-      const it = cleanStr(item.title);
-      return !vintedCatalog.some(vnt => {
-        const vt = cleanStr(vnt.title);
-        if (it === vt) return true;
-        if (it.length > 6 && vt.length > 6 && (it.includes(vt) || vt.includes(it))) return true;
-        return smartMatch(item, [vnt]).matched;
-      });
+      return !vintedCatalog.some(vnt => isSameVintedItem(item, vnt));
     });
   }, [items, vintedCatalog]);
 
