@@ -79,6 +79,13 @@ export const App: React.FC = () => {
           const localItems = await db.items.toArray();
           const localMap = new Map(localItems.map(i => [i.id, i]));
           
+          // Purge stale local items not present in remote Supabase
+          const remoteIds = new Set(remoteItems.map(i => i.id));
+          const itemsToDelete = localItems.filter(i => !remoteIds.has(i.id)).map(i => i.id);
+          if (itemsToDelete.length > 0) {
+            await db.items.bulkDelete(itemsToDelete);
+          }
+
           // Smart merge: Never overwrite an existing valid local price with null.
           // An item only has a valid local price to push to cloud if purchasePrice > 0.
           // If remote is null and local is 0, local is overwritten with null.
@@ -118,6 +125,12 @@ export const App: React.FC = () => {
       const remoteSales = await cloudFetchSales();
       if (remoteSales) {
         if (remoteSales.length > 0) {
+          const remoteSaleIds = new Set(remoteSales.map(s => s.id));
+          const localSales = await db.sales.toArray();
+          const salesToDelete = localSales.filter(s => !remoteSaleIds.has(s.id)).map(s => s.id);
+          if (salesToDelete.length > 0) {
+            await db.sales.bulkDelete(salesToDelete);
+          }
           await db.sales.bulkPut(remoteSales);
         } else {
           const localSales = await db.sales.toArray();

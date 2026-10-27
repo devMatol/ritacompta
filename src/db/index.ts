@@ -96,8 +96,10 @@ export async function initDatabase() {
       await loadRealVintedDressing();
     }
 
+    // Only seed fallback local stock if Supabase is NOT configured and local stock is empty
+    const { isConfigured } = getSupabaseConfig();
     const countItems = await db.items.count();
-    if (countItems === 0) {
+    if (!isConfigured && countItems === 0) {
       await seedInitialInventoryIfEmpty();
     }
   } catch (e) {
