@@ -127,7 +127,10 @@ export const App: React.FC = () => {
       // 3. Fetch remote Vinted catalog
       const remoteCatalog = await cloudFetchVintedCatalog();
       if (remoteCatalog && remoteCatalog.length > 0) {
-        await db.vintedCatalog.bulkPut(remoteCatalog);
+        await db.transaction('rw', db.vintedCatalog, async () => {
+          await db.vintedCatalog.clear();
+          await db.vintedCatalog.bulkPut(remoteCatalog);
+        });
       } else {
         const localCatalog = await db.vintedCatalog.toArray();
         if (localCatalog.length > 0) {

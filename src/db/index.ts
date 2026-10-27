@@ -1,6 +1,7 @@
 import Dexie, { type Table } from 'dexie';
 import { Item, Sale, VintedItem } from '../types';
 import { guessCategory } from '../services/matching';
+import { getSupabaseConfig, cloudFetchVintedCatalog } from './supabase';
 
 export class KozhaDatabase extends Dexie {
   items!: Table<Item, string>;
@@ -19,10 +20,23 @@ export class KozhaDatabase extends Dexie {
 
 export const db = new KozhaDatabase();
 
-// Load the 120 verified items from Rita's Vinted wardrobe into vintedCatalog
+// Load verified live items from Rita's Vinted wardrobe into vintedCatalog
 export async function loadRealVintedDressing(): Promise<VintedItem[]> {
   try {
-    const res = await fetch('/rita_vinted_dressing.json');
+    // 1. Try pulling live catalog from Supabase cloud
+    if (getSupabaseConfig().isConfigured) {
+      const cloudCatalog = await cloudFetchVintedCatalog();
+      if (cloudCatalog && cloudCatalog.length > 0) {
+        await db.transaction('rw', db.vintedCatalog, async () => {
+          await db.vintedCatalog.clear();
+          await db.vintedCatalog.bulkPut(cloudCatalog);
+        });
+        return cloudCatalog;
+      }
+    }
+
+    // 2. Fallback to public JSON
+    const res = await fetch(`/rita_vinted_dressing.json?t=${Date.now()}`);
     if (!res.ok) return [];
     const items: VintedItem[] = await res.json();
     

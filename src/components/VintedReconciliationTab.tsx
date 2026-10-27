@@ -1,7 +1,7 @@
 import React, { useState, useMemo } from 'react';
 import { Item, Sale, VintedItem } from '../types';
-import { isVintedItemImported } from '../services/matching';
-import { ExternalLink, Search, RefreshCw, CheckCircle2, Plus, Package, Sparkles } from 'lucide-react';
+import { cleanStr, smartMatch, isVintedItemImported } from '../services/matching';
+import { ExternalLink, Search, RefreshCw, CheckCircle2, Plus, Package, Sparkles, AlertTriangle } from 'lucide-react';
 
 interface VintedReconciliationTabProps {
   items: Item[];
@@ -19,18 +19,32 @@ export const VintedReconciliationTab: React.FC<VintedReconciliationTabProps> = (
   vintedCatalog,
   onReloadRealDressing,
   onBulkImportAll,
-  onQuickAddVintedToCompta
+  onQuickAddVintedToCompta,
+  onOpenSaleModal
 }) => {
   const [search, setSearch] = useState('');
   const [isSyncing, setIsSyncing] = useState(false);
   const [isImporting, setIsImporting] = useState(false);
 
-  // Filter ONLY items from Vinted that are NOT yet imported in stock or sales
+  // 1. Stock items that are NO LONGER present on Vinted (SOLDS / MISSING on Vinted)
+  const soldOrMissingOnVinted = useMemo(() => {
+    return items.filter(item => {
+      const it = cleanStr(item.title);
+      return !vintedCatalog.some(vnt => {
+        const vt = cleanStr(vnt.title);
+        if (it === vt) return true;
+        if (it.length > 6 && vt.length > 6 && (it.includes(vt) || vt.includes(it))) return true;
+        return smartMatch(item, [vnt]).matched;
+      });
+    });
+  }, [items, vintedCatalog]);
+
+  // 2. Filter ONLY items from Vinted that are NOT yet imported in stock or sales (NEW to import)
   const unimportedItems = useMemo(() => {
     return vintedCatalog.filter(vnt => !isVintedItemImported(vnt, items, sales));
   }, [vintedCatalog, items, sales]);
 
-  // Search filter on the unimported items
+  // Search filter on unimported items
   const filteredUnimported = useMemo(() => {
     if (!search.trim()) return unimportedItems;
     const q = search.toLowerCase();
@@ -42,7 +56,9 @@ export const VintedReconciliationTab: React.FC<VintedReconciliationTabProps> = (
   const handleRefresh = async () => {
     setIsSyncing(true);
     try {
-      await onReloadRealDressing();
+      const result = await onReloadRealDressing();
+      const count = Array.isArray(result) ? result.length : vintedCatalog.length;
+      console.log(`Vinted dressing reloaded: ${count} items.`);
     } finally {
       setIsSyncing(false);
     }
@@ -61,24 +77,36 @@ export const VintedReconciliationTab: React.FC<VintedReconciliationTabProps> = (
   return (
     <div className="space-y-6 animate-fade-in">
       
-      {/* 1. Ultra-clean Header & Actions Bar */}
+      {/* 1. Header & Actions Bar */}
       <div className="bg-surface border border-border rounded-md p-5 shadow-sm flex flex-wrap justify-between items-center gap-4">
         <div>
-          <div className="flex items-center gap-2.5">
-            <h2 className="font-heading text-xl font-bold text-primary">Vinted Sync</h2>
-            {unimportedItems.length === 0 ? (
-              <span className="font-mono text-xs px-2.5 py-0.5 bg-profit-soft border border-profit/30 text-profit rounded-sm font-semibold flex items-center gap-1.5">
-                <CheckCircle2 size={13} />
-                <span>Up to date (0 new)</span>
+          <div className="flex flex-wrap items-center gap-2.5">
+            <h2 className="font-heading text-xl font-bold text-primary">Vinted Sync & Detection</h2>
+            
+            {/* Status Pills */}
+            {soldOrMissingOnVinted.length > 0 && (
+              <span className="font-mono text-xs px-2.5 py-0.5 bg-amber-500/10 border border-amber-500/30 text-amber-600 dark:text-amber-400 rounded-sm font-bold flex items-center gap-1.5">
+                <AlertTriangle size={13} />
+                <span>{soldOrMissingOnVinted.length} sold / missing on Vinted</span>
               </span>
-            ) : (
-              <span className="font-mono text-xs px-2.5 py-0.5 bg-warning-soft border border-warning/40 text-warning rounded-sm font-bold flex items-center gap-1.5">
+            )}
+
+            {unimportedItems.length > 0 && (
+              <span className="font-mono text-xs px-2.5 py-0.5 bg-blue-500/10 border border-blue-500/30 text-blue-600 dark:text-blue-400 rounded-sm font-bold flex items-center gap-1.5">
+                <Sparkles size={13} />
                 <span>{unimportedItems.length} new to import</span>
               </span>
             )}
+
+            {soldOrMissingOnVinted.length === 0 && unimportedItems.length === 0 && (
+              <span className="font-mono text-xs px-2.5 py-0.5 bg-profit-soft border border-profit/30 text-profit rounded-sm font-semibold flex items-center gap-1.5">
+                <CheckCircle2 size={13} />
+                <span>Dressing 100% in sync</span>
+              </span>
+            )}
           </div>
-          <p className="text-xs text-secondary mt-0.5">
-            Only new or missing pieces from Vinted are displayed. Existing stock is never overwritten.
+          <p className="text-xs text-secondary mt-1">
+            Automatic reconciliation between Rita's live Vinted dressing ({vintedCatalog.length} pieces) and active stock.
           </p>
         </div>
 
@@ -87,11 +115,11 @@ export const VintedReconciliationTab: React.FC<VintedReconciliationTabProps> = (
           <button
             onClick={handleRefresh}
             disabled={isSyncing}
-            className="flex items-center gap-1.5 px-3.5 py-2 text-xs font-bold uppercase tracking-wider bg-surface border border-border-strong text-primary hover:bg-surface-subtle active:scale-95 rounded-sm transition-all shadow-xs"
-            title="Reload Vinted dressing to detect new listings"
+            className="flex items-center gap-1.5 px-3.5 py-2 text-xs font-bold uppercase tracking-wider bg-surface border border-border-strong text-primary hover:bg-surface-subtle active:scale-95 rounded-sm transition-all shadow-xs cursor-pointer"
+            title="Reload live Vinted dressing to detect sales and new listings"
           >
             <RefreshCw size={13} className={isSyncing ? "animate-spin" : ""} />
-            <span>{isSyncing ? 'Checking...' : 'Reload'}</span>
+            <span>{isSyncing ? 'Reloading...' : 'Reload'}</span>
           </button>
 
           <button
@@ -109,44 +137,98 @@ export const VintedReconciliationTab: React.FC<VintedReconciliationTabProps> = (
         </div>
       </div>
 
-      {/* 2. Content: Empty state or Table of New Pieces */}
-      {unimportedItems.length === 0 ? (
-        <div className="bg-surface border border-border rounded-md py-14 px-6 text-center shadow-sm">
-          <div className="w-12 h-12 rounded-full bg-profit-soft border border-profit/30 flex items-center justify-center mx-auto mb-3 text-profit">
-            <CheckCircle2 size={24} />
+      {/* 2. HIGH PRIORITY NOTIFICATION: Sold / Missing Pieces on Vinted */}
+      {soldOrMissingOnVinted.length > 0 && (
+        <div className="bg-surface border-2 border-amber-500/40 rounded-md p-5 shadow-sm space-y-4">
+          <div className="flex flex-wrap justify-between items-baseline gap-2 pb-3 border-b border-border">
+            <div>
+              <div className="flex items-center gap-2">
+                <span className="w-2.5 h-2.5 rounded-full bg-amber-500 animate-pulse"></span>
+                <h3 className="font-heading text-lg font-bold text-amber-600 dark:text-amber-400">
+                  {soldOrMissingOnVinted.length} Stock Item(s) Sold / Missing on Vinted
+                </h3>
+              </div>
+              <p className="text-xs text-secondary mt-1">
+                These pieces are present in your accounting stock but no longer found on Vinted. Click <strong>« Record Sale »</strong> to move them to your sales compta and book the profit in 1 click.
+              </p>
+            </div>
+            <span className="font-mono text-xs font-semibold px-2 py-0.5 bg-amber-500/10 border border-amber-500/30 text-amber-600 dark:text-amber-400 rounded-sm">
+              Action Required
+            </span>
           </div>
-          <h3 className="font-heading text-lg font-bold text-primary mb-1">
-            All Vinted items are already in your inventory
-          </h3>
-          <p className="text-xs text-secondary max-w-md mx-auto mb-5 leading-relaxed">
-            Every piece currently listed on <strong>@nuzhdina.ri</strong> has already been imported into your active stock or recorded sales archive. No duplicates can be re-imported.
-          </p>
-          <div className="inline-flex items-center gap-2 text-[11px] text-tertiary font-mono bg-surface-subtle border border-border px-3 py-1 rounded-sm">
-            <span>Dressing synced ({vintedCatalog.length} pieces verified)</span>
-            <span>·</span>
-            <a
-              href="https://www.vinted.fr/member/68815764-nuzhdinari"
-              target="_blank"
-              rel="noreferrer"
-              className="text-accent underline hover:opacity-80 inline-flex items-center gap-0.5"
-            >
-              <span>View Vinted</span>
-              <ExternalLink size={10} />
-            </a>
+
+          <div className="overflow-x-auto border border-border rounded-sm">
+            <table className="w-full text-left border-collapse">
+              <thead>
+                <tr className="border-b border-border bg-amber-500/5 text-[11px] font-semibold uppercase tracking-wider text-secondary">
+                  <th className="py-2.5 px-3 w-14">Photo</th>
+                  <th className="py-2.5 px-3">Ref & Brand</th>
+                  <th className="py-2.5 px-3">Title</th>
+                  <th className="py-2.5 px-3">Cost Price</th>
+                  <th className="py-2.5 px-3">Target Price</th>
+                  <th className="py-2.5 px-3 text-right">Quick Action</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-border">
+                {soldOrMissingOnVinted.map(item => (
+                  <tr key={item.id} className="hover:bg-surface-subtle transition-colors">
+                    <td className="py-2.5 px-3">
+                      {item.photo ? (
+                        <img
+                          src={item.photo}
+                          alt={item.title}
+                          className="w-12 h-12 object-cover rounded-sm border border-border"
+                          loading="lazy"
+                        />
+                      ) : (
+                        <div className="w-12 h-12 rounded-sm bg-surface-subtle flex items-center justify-center text-secondary border border-border">
+                          <Package size={16} />
+                        </div>
+                      )}
+                    </td>
+                    <td className="py-2.5 px-3">
+                      <span className="font-mono text-[10px] text-tertiary">#{item.id}</span>
+                      <div className="font-heading font-bold text-sm text-primary">{item.brand}</div>
+                    </td>
+                    <td className="py-2.5 px-3 text-xs text-secondary">
+                      {item.title}
+                    </td>
+                    <td className="py-2.5 px-3 font-mono text-xs font-bold text-primary">
+                      {item.purchasePrice !== null ? `${item.purchasePrice} €` : '-'}
+                    </td>
+                    <td className="py-2.5 px-3 font-mono text-sm font-bold text-accent">
+                      {item.targetPrice} €
+                    </td>
+                    <td className="py-2.5 px-3 text-right">
+                      {onOpenSaleModal && (
+                        <button
+                          onClick={() => onOpenSaleModal(item, item.targetPrice, 'Vinted')}
+                          className="px-3.5 py-1.5 text-xs font-bold uppercase tracking-wider bg-accent text-white rounded-sm hover:brightness-110 active:scale-95 transition-all shadow-xs inline-flex items-center gap-1.5 whitespace-nowrap cursor-pointer"
+                        >
+                          <CheckCircle2 size={13} />
+                          <span>Record Sale ({item.targetPrice} €)</span>
+                        </button>
+                      )}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
           </div>
         </div>
-      ) : (
+      )}
+
+      {/* 3. NEW VINTED ITEMS: Pending Import into Stock */}
+      {unimportedItems.length > 0 && (
         <div className="bg-surface border border-border rounded-md p-5 shadow-sm space-y-4">
-          
-          {/* Header of the table */}
           <div className="flex flex-wrap justify-between items-center gap-3 pb-3 border-b border-border">
             <div>
               <h3 className="font-heading text-base font-bold text-primary flex items-center gap-2">
                 <Sparkles size={16} className="text-accent" />
-                <span>New items detected on Vinted ({filteredUnimported.length})</span>
+                <span>New pieces live on Vinted to import ({filteredUnimported.length})</span>
               </h3>
               <p className="text-xs text-secondary mt-0.5">
-                These pieces are live on Vinted but missing from your accounting inventory.
+                These pieces are active on @nuzhdina.ri but not yet registered in your stock.
               </p>
             </div>
 
@@ -164,7 +246,6 @@ export const VintedReconciliationTab: React.FC<VintedReconciliationTabProps> = (
             )}
           </div>
 
-          {/* Table of new items */}
           <div className="overflow-x-auto border border-border rounded-sm">
             <table className="w-full text-left border-collapse">
               <thead>
@@ -212,7 +293,7 @@ export const VintedReconciliationTab: React.FC<VintedReconciliationTabProps> = (
                       {vnt.brand}
                     </td>
                     <td className="py-2.5 px-3 font-mono text-xs text-secondary">
-                      <span>{vnt.size || 'M'}</span> · <span className="text-[11px]">{vnt.condition || 'Very Good'}</span>
+                      <span>{vnt.size || 'M'}</span> · <span className="text-[11px]">{vnt.condition || 'Très bon état'}</span>
                     </td>
                     <td className="py-2.5 px-3 font-mono text-sm font-bold text-primary">
                       {vnt.price} €
@@ -220,7 +301,7 @@ export const VintedReconciliationTab: React.FC<VintedReconciliationTabProps> = (
                     <td className="py-2.5 px-3 text-right">
                       <button
                         onClick={() => onQuickAddVintedToCompta(vnt)}
-                        className="px-3 py-1.5 text-xs font-bold uppercase tracking-wider bg-primary text-canvas rounded-sm hover:opacity-90 active:scale-95 transition-all shadow-xs"
+                        className="px-3 py-1.5 text-xs font-bold uppercase tracking-wider bg-primary text-canvas rounded-sm hover:opacity-90 active:scale-95 transition-all shadow-xs cursor-pointer whitespace-nowrap"
                       >
                         + Import
                       </button>
@@ -229,6 +310,34 @@ export const VintedReconciliationTab: React.FC<VintedReconciliationTabProps> = (
                 ))}
               </tbody>
             </table>
+          </div>
+        </div>
+      )}
+
+      {/* 4. Complete Synchronized State */}
+      {soldOrMissingOnVinted.length === 0 && unimportedItems.length === 0 && (
+        <div className="bg-surface border border-border rounded-md py-14 px-6 text-center shadow-sm">
+          <div className="w-12 h-12 rounded-full bg-profit-soft border border-profit/30 flex items-center justify-center mx-auto mb-3 text-profit">
+            <CheckCircle2 size={24} />
+          </div>
+          <h3 className="font-heading text-lg font-bold text-primary mb-1">
+            Dressing & Stock 100% in sync
+          </h3>
+          <p className="text-xs text-secondary max-w-md mx-auto mb-5 leading-relaxed">
+            All pieces in your active inventory correspond to your live Vinted wardrobe. No missing sold pieces to record, and no new pieces pending import.
+          </p>
+          <div className="inline-flex items-center gap-2 text-[11px] text-tertiary font-mono bg-surface-subtle border border-border px-3 py-1 rounded-sm">
+            <span>Dressing synced ({vintedCatalog.length} pieces verified)</span>
+            <span>·</span>
+            <a
+              href="https://www.vinted.fr/member/68815764-nuzhdinari"
+              target="_blank"
+              rel="noreferrer"
+              className="text-accent underline hover:opacity-80 inline-flex items-center gap-0.5"
+            >
+              <span>View @nuzhdina.ri on Vinted</span>
+              <ExternalLink size={10} />
+            </a>
           </div>
         </div>
       )}
