@@ -230,7 +230,8 @@ export async function cloudFetchVintedCatalog(): Promise<VintedItem[] | null> {
     size: r.size,
     price: Number(r.price),
     photo: r.photo,
-    url: r.url
+    url: r.url,
+    publishedDate: r.published_date || r.publishedDate
   }));
 }
 

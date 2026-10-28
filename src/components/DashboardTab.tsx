@@ -409,7 +409,7 @@ export const DashboardTab: React.FC<DashboardTabProps> = ({
               {avgDays} Jours
             </div>
             <div className="text-[11px] text-accent font-medium mt-1 truncate">
-              Vitesse d'écoulement
+              Depuis publication Vinted
             </div>
           </div>
 
@@ -544,7 +544,8 @@ export const DashboardTab: React.FC<DashboardTabProps> = ({
                   </div>
                   <div className="text-right">
                     <div className="font-mono font-bold text-profit">+{item.margin} €</div>
-                    <div className="font-mono text-xs text-accent">Sold in {item.days}d</div>
+                    <div className="font-mono text-xs text-accent">Vendu en {item.days}j</div>
+                    <div className="text-[10px] text-tertiary">Publié le {item.purchaseDate}</div>
                   </div>
                 </div>
               ))}
@@ -601,7 +602,7 @@ export const DashboardTab: React.FC<DashboardTabProps> = ({
           <table className="w-full text-left border-collapse">
             <thead className="sticky top-0 z-10">
               <tr className="border-b border-border-strong bg-surface-subtle text-[11px] font-semibold uppercase tracking-wider text-secondary">
-                <th className="py-2.5 px-3">Date</th>
+                <th className="py-2.5 px-3">Vente & Publication</th>
                 <th className="py-2.5 px-3 w-14">Photo</th>
                 <th className="py-2.5 px-3">Item Sold</th>
                 <th className="py-2.5 px-3">Channel</th>
@@ -609,7 +610,7 @@ export const DashboardTab: React.FC<DashboardTabProps> = ({
                 <th className="py-2.5 px-3">Cost Price</th>
                 <th className="py-2.5 px-3">Net Margin</th>
                 <th className="py-2.5 px-3">ROI</th>
-                <th className="py-2.5 px-3">Time</th>
+                <th className="py-2.5 px-3">Vitesse</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-border">
@@ -628,8 +629,11 @@ export const DashboardTab: React.FC<DashboardTabProps> = ({
 
                   return (
                     <tr key={sale.id} className="hover:bg-surface-subtle transition-colors">
-                      <td className="py-3 px-3 font-mono text-xs text-tertiary">
-                        {sale.saleDate}
+                      <td className="py-3 px-3 font-mono text-xs">
+                        <div className="text-primary font-bold">{sale.saleDate}</div>
+                        <div className="text-[10px] text-tertiary">
+                          {sale.purchaseDate ? `Publié : ${sale.purchaseDate}` : '-'}
+                        </div>
                       </td>
                       <td className="py-3 px-3">
                         {sale.photo ? (
@@ -671,8 +675,11 @@ export const DashboardTab: React.FC<DashboardTabProps> = ({
                       <td className="py-3 px-3 font-mono text-xs text-profit font-semibold">
                         +{roi}%
                       </td>
-                      <td className="py-3 px-3 font-mono text-xs text-accent font-semibold">
-                        {days}d
+                      <td className="py-3 px-3 font-mono text-xs">
+                        <div className="text-accent font-semibold">{days}j</div>
+                        <div className="text-[10px] text-tertiary font-normal">
+                          {days === 1 ? '1 jour' : `${days} jours`}
+                        </div>
                       </td>
                     </tr>
                   );

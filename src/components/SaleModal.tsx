@@ -71,6 +71,11 @@ export const SaleModal: React.FC<SaleModalProps> = ({
                 <span className="font-mono text-warning font-semibold">Not set (needs cost)</span>
               )}
             </div>
+            {item.purchaseDate && (
+              <div className="text-[11px] text-tertiary mt-0.5 font-mono">
+                Date de publication : <span className="text-secondary font-semibold">{item.purchaseDate}</span>
+              </div>
+            )}
           </div>
         </div>
 

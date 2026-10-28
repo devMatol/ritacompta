@@ -9,6 +9,7 @@ export interface Item {
   targetPrice: number;
   photo?: string;
   purchaseDate: string;
+  publishedDate?: string;
   vintedId?: string;
   costExplicitlySet?: boolean;
 }
@@ -24,6 +25,7 @@ export interface Sale {
   photo?: string;
   saleDate: string;
   purchaseDate: string;
+  publishedDate?: string;
   paymentMethod?: string;
 }
 
@@ -36,6 +38,7 @@ export interface VintedItem {
   price: number;
   photo: string;
   url?: string;
+  publishedDate?: string;
   raw?: string;
 }
 

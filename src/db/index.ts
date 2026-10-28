@@ -71,7 +71,8 @@ export async function seedInitialInventoryIfEmpty(): Promise<number> {
       purchasePrice: null,
       targetPrice: vnt.price,
       photo: vnt.photo,
-      purchaseDate: new Date().toISOString().split('T')[0],
+      purchaseDate: vnt.publishedDate || new Date().toISOString().split('T')[0],
+      publishedDate: vnt.publishedDate,
       costExplicitlySet: false
     }));
 

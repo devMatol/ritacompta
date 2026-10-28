@@ -312,6 +312,7 @@ export const App: React.FC = () => {
       photo: item.photo,
       saleDate: new Date().toISOString().split('T')[0],
       purchaseDate: item.purchaseDate,
+      publishedDate: item.publishedDate || item.purchaseDate,
       paymentMethod
     };
 
@@ -358,7 +359,8 @@ export const App: React.FC = () => {
         purchasePrice: null, // Initial cost empty (needs cost)
         targetPrice: vnt.price,
         photo: vnt.photo,
-        purchaseDate: new Date().toISOString().split('T')[0],
+        purchaseDate: vnt.publishedDate || new Date().toISOString().split('T')[0],
+        publishedDate: vnt.publishedDate,
         costExplicitlySet: false
       });
       nextNum++;
@@ -414,7 +416,8 @@ export const App: React.FC = () => {
       purchasePrice: null,
       targetPrice: vnt.price,
       photo: vnt.photo,
-      purchaseDate: new Date().toISOString().split('T')[0],
+      purchaseDate: vnt.publishedDate || new Date().toISOString().split('T')[0],
+      publishedDate: vnt.publishedDate,
       costExplicitlySet: false
     };
 
