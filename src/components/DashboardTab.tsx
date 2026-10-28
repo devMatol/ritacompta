@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { Item, Sale } from '../types';
 import { isCostSet } from '../services/matching';
 import {
@@ -12,7 +12,12 @@ import {
   Filter,
   Package,
   Boxes,
-  ArrowRight
+  ArrowRight,
+  FileText,
+  Calculator,
+  Receipt,
+  Percent,
+  Coins
 } from 'lucide-react';
 
 interface DashboardTabProps {
@@ -30,6 +35,13 @@ export const DashboardTab: React.FC<DashboardTabProps> = ({
 }) => {
   const [salesSearch, setSalesSearch] = useState('');
   const [channelFilter, setChannelFilter] = useState<'ALL' | 'Vinted' | 'Flea Market' | 'Direct'>('ALL');
+  
+  // Tax & Fiscal state
+  const [taxRate, setTaxRate] = useState<number>(() => {
+    const saved = localStorage.getItem('kozha_tax_rate');
+    return saved !== null ? Number(saved) : 12.3;
+  });
+  const [periodFilter, setPeriodFilter] = useState<'ALL' | 'THIS_MONTH' | 'LAST_MONTH' | 'THIS_QUARTER' | 'THIS_YEAR'>('ALL');
 
   // Active Stock Valuation calculations
   const stockCount = items.length;
@@ -46,18 +58,51 @@ export const DashboardTab: React.FC<DashboardTabProps> = ({
   const potentialProfit = stockTargetValue - stockCostValue;
   const avgItemPrice = stockCount > 0 ? Math.round(stockTargetValue / stockCount) : 0;
 
-  // Financial calculations from completed sales
-  const totalTurnover = sales.reduce((acc, s) => acc + Number(s.salePrice), 0);
-  const totalCost = sales.reduce((acc, s) => acc + Number(s.purchasePrice), 0);
+  // Period filtering for sales & tax calculations
+  const periodSales = useMemo(() => {
+    return sales.filter(s => {
+      if (periodFilter === 'ALL') return true;
+      if (!s.saleDate) return false;
+      const d = new Date(s.saleDate);
+      const now = new Date();
+      if (periodFilter === 'THIS_MONTH') {
+        return d.getFullYear() === now.getFullYear() && d.getMonth() === now.getMonth();
+      }
+      if (periodFilter === 'LAST_MONTH') {
+        const lastMonth = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+        return d.getFullYear() === lastMonth.getFullYear() && d.getMonth() === lastMonth.getMonth();
+      }
+      if (periodFilter === 'THIS_QUARTER') {
+        const curQ = Math.floor(now.getMonth() / 3);
+        const saleQ = Math.floor(d.getMonth() / 3);
+        return d.getFullYear() === now.getFullYear() && curQ === saleQ;
+      }
+      if (periodFilter === 'THIS_YEAR') {
+        return d.getFullYear() === now.getFullYear();
+      }
+      return true;
+    });
+  }, [sales, periodFilter]);
+
+  // Financial calculations from completed sales (filtered by period)
+  const totalTurnover = periodSales.reduce((acc, s) => acc + Number(s.salePrice), 0);
+  const totalCost = periodSales.reduce((acc, s) => acc + Number(s.purchasePrice || 0), 0);
   const netMargin = totalTurnover - totalCost;
+  
+  // Tax & Net Revenue calculations
+  const estimatedTax = Math.round(totalTurnover * (taxRate / 100) * 100) / 100;
+  const netTurnoverAfterTax = Math.max(0, Math.round((totalTurnover - estimatedTax) * 100) / 100);
+  const netProfitAfterTax = Math.round((netMargin - estimatedTax) * 100) / 100;
+  
   const avgRoi = totalCost > 0 ? Math.round((netMargin / totalCost) * 100) : (totalTurnover > 0 ? 100 : 0);
+  const avgTicket = periodSales.length > 0 ? Math.round(totalTurnover / periodSales.length) : 0;
 
   let totalDays = 0;
-  sales.forEach(s => {
+  periodSales.forEach(s => {
     const days = Math.max(1, Math.round((new Date(s.saleDate).getTime() - new Date(s.purchaseDate).getTime()) / (1000 * 60 * 60 * 24)));
     totalDays += days;
   });
-  const avgDays = sales.length > 0 ? Math.round(totalDays / sales.length) : 0;
+  const avgDays = periodSales.length > 0 ? Math.round(totalDays / periodSales.length) : 0;
 
   // Channel metrics
   const vintedSales = sales.filter(s => s.channel === 'Vinted');
@@ -193,57 +238,195 @@ export const DashboardTab: React.FC<DashboardTabProps> = ({
         </div>
       </section>
 
-      {/* 2. REALIZED SALES FINANCIAL KPIS */}
-      <section className="grid grid-cols-2 lg:grid-cols-4 border border-border bg-surface rounded-md overflow-hidden shadow-sm">
-        <div className="p-3.5 sm:p-5 border-r border-b lg:border-b-0 border-border">
-          <div className="flex items-center justify-between text-[11px] sm:text-xs uppercase tracking-wider text-secondary mb-1">
-            <span className="truncate">Total Revenue</span>
-            <DollarSign size={14} className="text-accent shrink-0 ml-1" />
+      {/* 2. REALIZED SALES, TAX & FINANCIAL KPIS */}
+      <section className="bg-surface border border-border rounded-md p-5 sm:p-6 shadow-sm space-y-4">
+        {/* Header with Title, Period Filter & Tax Configuration */}
+        <div className="flex flex-wrap items-center justify-between gap-3 border-b border-border pb-4">
+          <div>
+            <div className="flex items-center gap-2">
+              <Calculator size={18} className="text-accent" />
+              <h2 className="font-heading text-lg sm:text-xl font-bold text-primary">
+                Ventes, Fiscalité & Déclaration
+              </h2>
+            </div>
+            <p className="text-xs text-secondary mt-0.5">
+              Montant brut à déclarer, cotisations estimées et revenu net réel après impôts.
+            </p>
           </div>
-          <div className="font-mono text-xl sm:text-2xl lg:text-3xl font-semibold text-primary truncate">
-            {totalTurnover.toLocaleString('en-US')} €
-          </div>
-          <div className="text-[11px] sm:text-xs text-secondary mt-1 truncate">
-            Across {sales.length} closed sale(s)
+
+          <div className="flex flex-wrap items-center gap-2">
+            {/* Period Filter Buttons */}
+            <div className="flex items-center bg-surface-subtle border border-border rounded-sm p-0.5 text-xs">
+              <button
+                onClick={() => setPeriodFilter('ALL')}
+                className={`px-2 py-1 rounded-xs transition-colors font-mono text-[11px] ${
+                  periodFilter === 'ALL'
+                    ? 'bg-surface text-primary font-bold shadow-xs border border-border'
+                    : 'text-secondary hover:text-primary'
+                }`}
+              >
+                Tout ({sales.length})
+              </button>
+              <button
+                onClick={() => setPeriodFilter('THIS_MONTH')}
+                className={`px-2 py-1 rounded-xs transition-colors font-mono text-[11px] ${
+                  periodFilter === 'THIS_MONTH'
+                    ? 'bg-surface text-primary font-bold shadow-xs border border-border'
+                    : 'text-secondary hover:text-primary'
+                }`}
+              >
+                Ce mois
+              </button>
+              <button
+                onClick={() => setPeriodFilter('THIS_QUARTER')}
+                className={`px-2 py-1 rounded-xs transition-colors font-mono text-[11px] ${
+                  periodFilter === 'THIS_QUARTER'
+                    ? 'bg-surface text-primary font-bold shadow-xs border border-border'
+                    : 'text-secondary hover:text-primary'
+                }`}
+              >
+                Trimestre
+              </button>
+              <button
+                onClick={() => setPeriodFilter('THIS_YEAR')}
+                className={`px-2 py-1 rounded-xs transition-colors font-mono text-[11px] ${
+                  periodFilter === 'THIS_YEAR'
+                    ? 'bg-surface text-primary font-bold shadow-xs border border-border'
+                    : 'text-secondary hover:text-primary'
+                }`}
+              >
+                Année
+              </button>
+            </div>
+
+            {/* Tax Rate Selector */}
+            <div className="flex items-center gap-1.5 bg-surface-subtle border border-border rounded-sm px-2.5 py-1 text-xs">
+              <Percent size={12} className="text-accent" />
+              <span className="text-[11px] text-secondary">Taux :</span>
+              <select
+                value={taxRate}
+                onChange={e => {
+                  const val = Number(e.target.value);
+                  setTaxRate(val);
+                  localStorage.setItem('kozha_tax_rate', String(val));
+                }}
+                className="bg-transparent font-mono text-xs font-bold text-primary outline-none cursor-pointer"
+              >
+                <option value={12.3}>12.3% (URSSAF Achat-Revente)</option>
+                <option value={13.3}>13.3% (+ Impôt Libératoire 1%)</option>
+                <option value={0}>0% (Non assujetti)</option>
+                <option value={21.2}>21.2% (Prestations)</option>
+                <option value={15}>15% (Autre)</option>
+                <option value={20}>20% (TVA)</option>
+              </select>
+            </div>
           </div>
         </div>
 
-        <div className="p-3.5 sm:p-5 border-b lg:border-b-0 lg:border-r border-border">
-          <div className="flex items-center justify-between text-[11px] sm:text-xs uppercase tracking-wider text-secondary mb-1">
-            <span className="truncate">Net Profit</span>
-            <TrendingUp size={14} className="text-profit shrink-0 ml-1" />
+        {/* 6 Metric Cards in 2 columns on mobile */}
+        <div className="grid grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-3 sm:gap-4">
+          
+          {/* 1. Montant à déclarer (CA Brut) */}
+          <div className="p-3.5 sm:p-4 bg-surface-subtle border-2 border-accent/40 rounded-sm">
+            <div className="flex items-center justify-between text-[11px] sm:text-xs uppercase tracking-wider text-accent font-bold mb-1">
+              <span className="truncate">Montant à déclarer</span>
+              <FileText size={14} className="text-accent shrink-0 ml-1" />
+            </div>
+            <div className="font-mono text-xl sm:text-2xl font-bold text-primary truncate">
+              {totalTurnover.toLocaleString('fr-FR')} €
+            </div>
+            <div className="text-[11px] text-secondary mt-1 flex items-center justify-between">
+              <span className="truncate">CA brut encaissé</span>
+              <span className="font-mono font-bold text-[10px] text-accent bg-accent/10 px-1 rounded-xs">
+                URSSAF
+              </span>
+            </div>
           </div>
-          <div className="font-mono text-xl sm:text-2xl lg:text-3xl font-semibold text-profit truncate">
-            +{netMargin.toLocaleString('en-US')} €
+
+          {/* 2. Revenu net après taxe (Bénéfice net restant) */}
+          <div className="p-3.5 sm:p-4 bg-surface-subtle border-2 border-profit/40 rounded-sm">
+            <div className="flex items-center justify-between text-[11px] sm:text-xs uppercase tracking-wider text-profit font-bold mb-1">
+              <span className="truncate">Revenu après taxe</span>
+              <Coins size={14} className="text-profit shrink-0 ml-1" />
+            </div>
+            <div className="font-mono text-xl sm:text-2xl font-bold text-profit truncate">
+              +{netProfitAfterTax.toLocaleString('fr-FR')} €
+            </div>
+            <div className="text-[11px] text-profit font-medium mt-1 truncate">
+              Net réel en poche
+            </div>
           </div>
-          <div className="font-mono text-[11px] sm:text-xs text-profit font-medium mt-1 truncate">
-            Avg ROI: +{avgRoi}%
+
+          {/* 3. Cotisations & Taxes estimées */}
+          <div className="p-3.5 sm:p-4 bg-surface-subtle border border-border rounded-sm">
+            <div className="flex items-center justify-between text-[11px] sm:text-xs uppercase tracking-wider text-secondary mb-1">
+              <span className="truncate">Taxes ({taxRate}%)</span>
+              <Receipt size={14} className="text-amber-500 shrink-0 ml-1" />
+            </div>
+            <div className="font-mono text-xl sm:text-2xl font-bold text-amber-600 dark:text-amber-400 truncate">
+              -{estimatedTax.toLocaleString('fr-FR')} €
+            </div>
+            <div className="text-[11px] text-secondary mt-1 truncate">
+              Cotisations dues
+            </div>
           </div>
+
+          {/* 4. Marge brute (Avant taxes) */}
+          <div className="p-3.5 sm:p-4 bg-surface-subtle border border-border rounded-sm">
+            <div className="flex items-center justify-between text-[11px] sm:text-xs uppercase tracking-wider text-secondary mb-1">
+              <span className="truncate">Marge brute</span>
+              <TrendingUp size={14} className="text-profit shrink-0 ml-1" />
+            </div>
+            <div className="font-mono text-xl sm:text-2xl font-bold text-profit truncate">
+              +{netMargin.toLocaleString('fr-FR')} €
+            </div>
+            <div className="text-[11px] text-secondary mt-1 font-mono truncate">
+              ROI : +{avgRoi}%
+            </div>
+          </div>
+
+          {/* 5. Panier moyen */}
+          <div className="p-3.5 sm:p-4 bg-surface-subtle border border-border rounded-sm">
+            <div className="flex items-center justify-between text-[11px] sm:text-xs uppercase tracking-wider text-secondary mb-1">
+              <span className="truncate">Panier moyen</span>
+              <ShoppingBag size={14} className="text-tertiary shrink-0 ml-1" />
+            </div>
+            <div className="font-mono text-xl sm:text-2xl font-bold text-primary truncate">
+              {avgTicket.toLocaleString('fr-FR')} €
+            </div>
+            <div className="text-[11px] text-secondary mt-1 truncate">
+              Prix moyen / vente
+            </div>
+          </div>
+
+          {/* 6. Délai moyen de vente */}
+          <div className="p-3.5 sm:p-4 bg-surface-subtle border border-border rounded-sm">
+            <div className="flex items-center justify-between text-[11px] sm:text-xs uppercase tracking-wider text-secondary mb-1">
+              <span className="truncate">Délai de vente</span>
+              <Clock size={14} className="text-accent shrink-0 ml-1" />
+            </div>
+            <div className="font-mono text-xl sm:text-2xl font-bold text-primary truncate">
+              {avgDays} Jours
+            </div>
+            <div className="text-[11px] text-accent font-medium mt-1 truncate">
+              Vitesse d'écoulement
+            </div>
+          </div>
+
         </div>
 
-        <div className="p-3.5 sm:p-5 border-r lg:border-r border-border">
-          <div className="flex items-center justify-between text-[11px] sm:text-xs uppercase tracking-wider text-secondary mb-1">
-            <span className="truncate">Avg Order Value</span>
-            <ShoppingBag size={14} className="text-tertiary shrink-0 ml-1" />
+        {/* Info callout for declaration guidance */}
+        <div className="bg-surface border border-border/80 rounded-sm p-3 text-[11px] text-secondary flex flex-wrap items-center justify-between gap-2">
+          <div className="flex items-center gap-2">
+            <span className="font-bold uppercase tracking-wider text-accent text-[10px] px-1.5 py-0.5 bg-accent/10 rounded-xs">
+              Déclaration URSSAF / Impôts
+            </span>
+            <span>
+              En achat-revente de biens (micro-BIC), déclarez le <strong>Chiffre d'Affaires brut encaissé</strong> ({totalTurnover.toLocaleString('fr-FR')} €).
+            </span>
           </div>
-          <div className="font-mono text-xl sm:text-2xl lg:text-3xl font-semibold text-primary truncate">
-            {sales.length > 0 ? Math.round(totalTurnover / sales.length) : 0} €
-          </div>
-          <div className="text-[11px] sm:text-xs text-secondary mt-1 truncate">
-            Average ticket per sale
-          </div>
-        </div>
-
-        <div className="p-3.5 sm:p-5">
-          <div className="flex items-center justify-between text-[11px] sm:text-xs uppercase tracking-wider text-secondary mb-1">
-            <span className="truncate">Avg Velocity</span>
-            <Clock size={14} className="text-accent shrink-0 ml-1" />
-          </div>
-          <div className="font-mono text-xl sm:text-2xl lg:text-3xl font-semibold text-primary truncate">
-            {avgDays} Days
-          </div>
-          <div className="text-[11px] sm:text-xs text-accent font-medium mt-1 truncate">
-            Avg days to sell
+          <div className="font-mono text-[11px] text-primary">
+            CA net de cotisations : <strong className="text-primary">{netTurnoverAfterTax.toLocaleString('fr-FR')} €</strong>
           </div>
         </div>
       </section>
