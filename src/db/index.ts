@@ -21,9 +21,29 @@ export class KozhaDatabase extends Dexie {
 export const db = new KozhaDatabase();
 
 // Load verified live items from Rita's Vinted wardrobe into vintedCatalog
-export async function loadRealVintedDressing(): Promise<VintedItem[]> {
+export async function loadRealVintedDressing(force = false): Promise<VintedItem[]> {
   try {
-    // 1. Try pulling live catalog from Supabase cloud
+    // 1. First, attempt to call the live Vinted sync API (/api/vinted-sync)
+    try {
+      const url = force ? `/api/vinted-sync?force=true&t=${Date.now()}` : `/api/vinted-sync?t=${Date.now()}`;
+      const liveRes = await fetch(url);
+      if (liveRes.ok) {
+        const json = await liveRes.json();
+        if (json.success && Array.isArray(json.items) && json.items.length > 0) {
+          const liveItems: VintedItem[] = json.items;
+          await db.transaction('rw', db.vintedCatalog, async () => {
+            await db.vintedCatalog.clear();
+            await db.vintedCatalog.bulkPut(liveItems);
+          });
+          console.log(`Live Vinted sync complete: ${liveItems.length} items loaded directly from Vinted.`);
+          return liveItems;
+        }
+      }
+    } catch (apiErr) {
+      console.warn('Live API sync failed, falling back to Supabase/JSON:', apiErr);
+    }
+
+    // 2. Fallback: Try pulling live catalog from Supabase cloud
     if (getSupabaseConfig().isConfigured) {
       const cloudCatalog = await cloudFetchVintedCatalog();
       if (cloudCatalog && cloudCatalog.length > 0) {
@@ -35,7 +55,7 @@ export async function loadRealVintedDressing(): Promise<VintedItem[]> {
       }
     }
 
-    // 2. Fallback to public JSON
+    // 3. Fallback to public JSON
     const res = await fetch(`/rita_vinted_dressing.json?t=${Date.now()}`);
     if (!res.ok) return [];
     const items: VintedItem[] = await res.json();

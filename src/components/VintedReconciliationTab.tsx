@@ -7,7 +7,7 @@ interface VintedReconciliationTabProps {
   items: Item[];
   sales?: Sale[];
   vintedCatalog: VintedItem[];
-  onReloadRealDressing: () => Promise<any>;
+  onReloadRealDressing: (force?: boolean) => Promise<any>;
   onBulkImportAll: () => Promise<void>;
   onQuickAddVintedToCompta: (vintedItem: VintedItem) => void;
   onOpenSaleModal?: (item: Item, suggestedPrice?: number, channel?: string) => void;
@@ -25,6 +25,7 @@ export const VintedReconciliationTab: React.FC<VintedReconciliationTabProps> = (
   const [search, setSearch] = useState('');
   const [isSyncing, setIsSyncing] = useState(false);
   const [isImporting, setIsImporting] = useState(false);
+  const [syncMessage, setSyncMessage] = useState<string | null>(null);
 
   // 1. Stock items that are NO LONGER present on Vinted (SOLDS / MISSING on Vinted)
   const soldOrMissingOnVinted = useMemo(() => {
@@ -49,10 +50,15 @@ export const VintedReconciliationTab: React.FC<VintedReconciliationTabProps> = (
 
   const handleRefresh = async () => {
     setIsSyncing(true);
+    setSyncMessage(null);
     try {
-      const result = await onReloadRealDressing();
+      const result = await onReloadRealDressing(true);
       const count = Array.isArray(result) ? result.length : vintedCatalog.length;
-      console.log(`Vinted dressing reloaded: ${count} items.`);
+      setSyncMessage(`Dressing actualisé en direct (${count} pièces en ligne)`);
+      setTimeout(() => setSyncMessage(null), 4000);
+    } catch (e) {
+      setSyncMessage('Erreur lors du reload');
+      setTimeout(() => setSyncMessage(null), 4000);
     } finally {
       setIsSyncing(false);
     }
@@ -105,7 +111,13 @@ export const VintedReconciliationTab: React.FC<VintedReconciliationTabProps> = (
         </div>
 
         {/* Action Buttons: Just Reload and Import */}
-        <div className="flex items-center gap-2.5">
+        <div className="flex flex-wrap items-center gap-2.5">
+          {syncMessage && (
+            <span className="font-mono text-xs text-profit bg-profit-soft border border-profit/30 px-2.5 py-1 rounded-sm animate-fade-in font-medium">
+              {syncMessage}
+            </span>
+          )}
+
           <button
             onClick={handleRefresh}
             disabled={isSyncing}
