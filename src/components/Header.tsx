@@ -1,13 +1,14 @@
-import React, { useState } from 'react';
-import { Menu, X, Package, RefreshCw, PlusCircle, BarChart3, Download, Smartphone, Cloud } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { Menu, X, RefreshCw, Smartphone, Cloud, AlertCircle } from 'lucide-react';
+
+export type TabType = 'dashboard' | 'inventory' | 'sales' | 'vinted' | 'add';
 
 interface HeaderProps {
-  activeTab: 'inventory' | 'vinted' | 'add' | 'dashboard';
-  onTabChange: (tab: 'inventory' | 'vinted' | 'add' | 'dashboard') => void;
+  activeTab: TabType;
+  onTabChange: (tab: TabType) => void;
   itemsCount: number;
-  vintedCount: number;
   salesCount: number;
-  soldCount?: number;
+  vintedActionCount?: number;
   onOpenInstallModal?: () => void;
   onOpenCloudModal?: () => void;
   onSyncNow?: () => Promise<void> | void;
@@ -19,9 +20,8 @@ export const Header: React.FC<HeaderProps> = ({
   activeTab,
   onTabChange,
   itemsCount,
-  vintedCount,
   salesCount,
-  soldCount = 0,
+  vintedActionCount = 0,
   onOpenInstallModal,
   onOpenCloudModal,
   onSyncNow,
@@ -31,259 +31,241 @@ export const Header: React.FC<HeaderProps> = ({
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [isSyncing, setIsSyncing] = useState(false);
 
+  // Lock body scroll when mobile menu is open
+  useEffect(() => {
+    if (mobileMenuOpen) {
+      document.body.style.overflow = 'hidden';
+    } else {
+      document.body.style.overflow = '';
+    }
+    return () => {
+      document.body.style.overflow = '';
+    };
+  }, [mobileMenuOpen]);
+
+  // Close menu on Escape key
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') setMobileMenuOpen(false);
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, []);
+
   const handleManualSync = async () => {
     if (onSyncNow) {
       setIsSyncing(true);
       try {
         await onSyncNow();
       } finally {
-        setTimeout(() => setIsSyncing(false), 600);
+        setTimeout(() => setIsSyncing(false), 500);
       }
     }
   };
 
-  const handleSelectTab = (tab: 'inventory' | 'vinted' | 'add' | 'dashboard') => {
+  const handleSelectTab = (tab: TabType) => {
     onTabChange(tab);
     setMobileMenuOpen(false);
   };
 
+  const navItems: { id: TabType; label: string; count?: number; badgeAlert?: boolean }[] = [
+    { id: 'dashboard', label: 'Tableau de bord' },
+    { id: 'inventory', label: 'Stock', count: itemsCount },
+    { id: 'sales', label: 'Ventes', count: salesCount },
+    { id: 'vinted', label: 'Synchro Vinted', badgeAlert: vintedActionCount > 0 },
+    { id: 'add', label: 'Ajout rapide' }
+  ];
+
   return (
-    <header className="sticky top-0 z-40 border-b border-border bg-canvas/95 backdrop-blur-md">
-      <div className="max-w-[1280px] mx-auto px-4 sm:px-6 py-3.5 flex items-center justify-between">
-        
-        {/* Brand */}
-        <div className="flex items-baseline gap-3">
-          <h1 className="font-heading text-2xl font-bold tracking-tight text-primary">
-            Kozha
-          </h1>
-          <span className="font-mono text-[11px] uppercase tracking-widest text-accent px-2 py-0.5 border border-accent rounded-sm">
-            Vintage Luxury
-          </span>
-        </div>
-
-        {/* Action Right (Mobile Burger + Quick Install Pill) */}
-        <div className="flex items-center gap-2 md:hidden">
-          {onSyncNow && (
-            <button
-              onClick={handleManualSync}
-              className={`p-1.5 rounded-sm border text-xs flex items-center gap-1 ${
-                isSyncing
-                  ? 'border-accent text-accent bg-surface-subtle'
-                  : 'border-border text-secondary bg-surface'
-              }`}
-              title="Sync latest data from cloud"
-            >
-              <RefreshCw size={14} className={isSyncing ? "animate-spin" : ""} />
-            </button>
-          )}
-
-          {onOpenCloudModal && (
-            <button
-              onClick={onOpenCloudModal}
-              className={`p-1.5 rounded-sm border text-xs flex items-center gap-1 ${
-                isCloudConnected
-                  ? 'border-profit/40 text-profit bg-profit-soft'
-                  : 'border-border text-secondary bg-surface'
-              }`}
-              title="Cloud Database Sync"
-            >
-              <Cloud size={14} />
-            </button>
-          )}
-
-          {!isStandalone && onOpenInstallModal && (
-            <button
-              onClick={onOpenInstallModal}
-              className="flex items-center gap-1.5 px-2.5 py-1.5 text-xs font-semibold bg-surface border border-accent text-accent rounded-sm active:scale-95 transition-all shadow-sm"
-              title="Install application"
-            >
-              <Smartphone size={14} />
-              <span>Install</span>
-            </button>
-          )}
-
-          {/* Mobile Burger Toggle Button */}
-          <button
-            onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-            className="p-2 rounded-sm border border-border-strong bg-surface text-primary hover:bg-surface-subtle transition-all"
-            aria-label="Navigation menu"
-          >
-            {mobileMenuOpen ? <X size={20} /> : <Menu size={20} />}
-          </button>
-        </div>
-
-        {/* Desktop Quick Indicators & Install Button */}
-        <div className="hidden md:flex items-center gap-3 text-xs font-mono">
-          {onSyncNow && (
-            <button
-              onClick={handleManualSync}
-              className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-sm border transition-all ${
-                isSyncing
-                  ? 'bg-surface-elevated text-accent border-accent'
-                  : 'bg-surface-subtle text-secondary border-border hover:border-accent hover:text-primary'
-              }`}
-              title="Pull latest data from Supabase"
-            >
-              <RefreshCw size={12} className={isSyncing ? "animate-spin" : ""} />
-              <span>{isSyncing ? 'Syncing...' : 'Sync Cloud'}</span>
-            </button>
-          )}
-
-          {/* Cloud Sync Status Pill */}
-          {onOpenCloudModal && (
-            <button
-              onClick={onOpenCloudModal}
-              className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-sm border transition-all ${
-                isCloudConnected
-                  ? 'bg-profit-soft text-profit border-profit/30 hover:brightness-95'
-                  : 'bg-surface-subtle text-secondary border-border hover:border-accent hover:text-primary'
-              }`}
-              title="Click to configure live Supabase synchronization"
-            >
-              <Cloud size={13} className={isCloudConnected ? 'text-profit' : 'text-secondary'} />
-              <span>{isCloudConnected ? 'Cloud Live' : 'Connect Cloud DB'}</span>
-            </button>
-          )}
-
-          <span className="inline-flex items-center gap-1.5 text-secondary border border-border px-2.5 py-1 rounded-sm bg-surface">
-            <span className="w-1.5 h-1.5 rounded-full bg-profit"></span>
-            <span>@nuzhdina.ri connected</span>
-          </span>
-
-          {!isStandalone && onOpenInstallModal ? (
-            <button
-              onClick={onOpenInstallModal}
-              className="flex items-center gap-1.5 px-3 py-1 text-xs font-semibold bg-accent text-white rounded-sm hover:brightness-110 shadow-sm transition-all"
-            >
-              <Download size={13} />
-              <span>Install App</span>
-            </button>
-          ) : (
-            <span className="font-mono text-[11px] px-2 py-0.5 bg-surface border border-border text-secondary rounded-sm">
-              App Installed
+    <>
+      <header className="sticky top-0 z-30 border-b border-[rgba(255,190,220,0.10)] bg-[#0E0A0D]/90 backdrop-blur-xl">
+        <div className="max-w-[1320px] mx-auto px-4 sm:px-6 h-16 flex items-center justify-between gap-4">
+          
+          {/* Logo Kozha + Mention "Vintage luxe" */}
+          <div className="flex items-baseline gap-2.5 shrink-0">
+            <span className="font-serif italic text-2xl sm:text-[26px] tracking-wide text-primary">
+              Kozha
             </span>
-          )}
-        </div>
-      </div>
+            <span className="text-xs text-accent-light tracking-wide font-normal">
+              Vintage luxe
+            </span>
+          </div>
 
-      {/* Mobile Drawer Menu (Burger) - DASHBOARD IN POSITION #1 */}
+          {/* Desktop Navigation Tabs (Pilules avec fond actif translucide) */}
+          <nav className="hidden md:flex items-center gap-1.5 p-1 bg-white/[0.03] border border-[rgba(255,190,220,0.08)] rounded-full">
+            {navItems.map(item => {
+              const isActive = activeTab === item.id;
+              return (
+                <button
+                  key={item.id}
+                  onClick={() => handleSelectTab(item.id)}
+                  className={`relative px-4 py-1.5 text-[13px] transition-all rounded-full cursor-pointer flex items-center gap-1.5 whitespace-nowrap ${
+                    isActive
+                      ? 'bg-[rgba(255,143,192,0.14)] text-accent-pale font-semibold shadow-xs'
+                      : 'text-[#C9B8C2] hover:text-primary hover:bg-white/[0.04]'
+                  }`}
+                >
+                  <span>{item.label}</span>
+                  {typeof item.count === 'number' && (
+                    <span className={`text-[11px] font-mono ${isActive ? 'text-accent-pale' : 'text-tertiary'}`}>
+                      ({item.count})
+                    </span>
+                  )}
+                  {item.badgeAlert && (
+                    <span className="w-2 h-2 rounded-full bg-accent animate-pulse" title="Action requise" />
+                  )}
+                </button>
+              );
+            })}
+          </nav>
+
+          {/* Desktop Right: Indicateur simple "● Synchronisé" / "● Hors ligne" */}
+          <div className="hidden md:flex items-center gap-2 shrink-0">
+            <button
+              onClick={onOpenCloudModal}
+              className="flex items-center gap-2 text-xs py-1.5 px-3 rounded-full bg-white/[0.02] border border-[rgba(255,190,220,0.08)] hover:border-[rgba(255,190,220,0.20)] transition-all cursor-pointer"
+              title="Statut de synchronisation Cloud Supabase"
+            >
+              <span
+                className={`w-2 h-2 rounded-full shrink-0 ${
+                  isCloudConnected ? 'bg-menthe shadow-[0_0_8px_rgba(127,227,181,0.6)]' : 'bg-corail'
+                }`}
+              />
+              <span className={`font-medium ${isCloudConnected ? 'text-menthe' : 'text-corail'}`}>
+                {isCloudConnected ? 'Synchronisé' : 'Hors ligne'}
+              </span>
+            </button>
+          </div>
+
+          {/* Mobile Right: Status indicator + Burger Button (44px min) */}
+          <div className="flex md:hidden items-center gap-2">
+            <div
+              className="flex items-center gap-1.5 py-1 px-2.5 rounded-full bg-white/[0.03] border border-[rgba(255,190,220,0.08)] text-[11px]"
+              title={isCloudConnected ? 'Synchronisé' : 'Hors ligne'}
+            >
+              <span
+                className={`w-2 h-2 rounded-full ${
+                  isCloudConnected ? 'bg-menthe shadow-[0_0_6px_rgba(127,227,181,0.5)]' : 'bg-corail'
+                }`}
+              />
+              <span className={isCloudConnected ? 'text-menthe' : 'text-corail'}>
+                {isCloudConnected ? 'Sync' : 'Offline'}
+              </span>
+            </div>
+
+            <button
+              onClick={() => setMobileMenuOpen(true)}
+              className="w-11 h-11 flex items-center justify-center rounded-md bg-white/[0.03] border border-[rgba(255,190,220,0.12)] text-primary hover:text-accent active:scale-95 transition-all"
+              aria-label="Ouvrir le menu"
+            >
+              <Menu size={22} strokeWidth={1.5} />
+            </button>
+          </div>
+
+        </div>
+      </header>
+
+      {/* MOBILE FULL-SCREEN MENU (< 768px) */}
       {mobileMenuOpen && (
-        <nav className="md:hidden border-t border-border bg-surface px-4 py-4 space-y-1 shadow-lg animate-fade-in">
-          {/* 1. Sales Dashboard */}
-          <button
-            onClick={() => handleSelectTab('dashboard')}
-            className={`w-full flex items-center justify-between px-3.5 py-2.5 rounded-sm text-sm font-medium transition-all ${
-              activeTab === 'dashboard'
-                ? 'bg-surface-elevated text-primary font-bold border-l-4 border-accent'
-                : 'text-secondary hover:bg-surface-subtle'
-            }`}
-          >
-            <div className="flex items-center gap-2.5">
-              <BarChart3 size={17} className="text-primary" />
-              <span>Sales Dashboard</span>
+        <div className="fixed inset-0 z-50 bg-[#0E0A0D]/[0.98] backdrop-blur-2xl flex flex-col justify-between p-5 animate-fade-in md:hidden">
+          
+          {/* Top Bar with Logo & Close Button */}
+          <div className="flex items-center justify-between h-14 border-b border-[rgba(255,190,220,0.10)] pb-3">
+            <div className="flex items-baseline gap-2">
+              <span className="font-serif italic text-2xl text-primary">Kozha</span>
+              <span className="text-xs text-accent-light">Vintage luxe</span>
             </div>
-            <span className="font-mono text-xs px-2 py-0.5 bg-surface rounded-full border border-border text-secondary">
-              {salesCount} sale(s)
-            </span>
-          </button>
+            <button
+              onClick={() => setMobileMenuOpen(false)}
+              className="w-11 h-11 flex items-center justify-center rounded-md text-secondary hover:text-primary active:scale-95"
+              aria-label="Fermer le menu"
+            >
+              <X size={24} strokeWidth={1.5} />
+            </button>
+          </div>
 
-          {/* 2. Active Inventory */}
-          <button
-            onClick={() => handleSelectTab('inventory')}
-            className={`w-full flex items-center justify-between px-3.5 py-2.5 rounded-sm text-sm font-medium transition-all ${
-              activeTab === 'inventory'
-                ? 'bg-surface-elevated text-primary font-bold border-l-4 border-accent'
-                : 'text-secondary hover:bg-surface-subtle'
-            }`}
-          >
-            <div className="flex items-center gap-2.5">
-              <Package size={17} className="text-accent" />
-              <span>Active Inventory</span>
-            </div>
-            <span className="font-mono text-xs px-2 py-0.5 bg-surface rounded-full border border-border text-secondary">
-              {itemsCount}
-            </span>
-          </button>
+          {/* Navigation Links (grandes lignes de 56px) */}
+          <div className="flex-1 py-6 flex flex-col justify-center space-y-2">
+            {navItems.map(item => {
+              const isActive = activeTab === item.id;
+              return (
+                <button
+                  key={item.id}
+                  onClick={() => handleSelectTab(item.id)}
+                  className={`w-full min-h-[56px] px-5 rounded-2xl flex items-center justify-between text-base font-medium transition-all ${
+                    isActive
+                      ? 'bg-[rgba(255,143,192,0.14)] text-accent-pale shadow-xs border border-[rgba(255,143,192,0.25)]'
+                      : 'text-[#C9B8C2] hover:text-primary hover:bg-white/[0.03]'
+                  }`}
+                >
+                  <span className="text-base font-medium">{item.label}</span>
+                  <div className="flex items-center gap-2">
+                    {typeof item.count === 'number' && (
+                      <span className="text-xs font-mono text-secondary">
+                        {item.count}
+                      </span>
+                    )}
+                    {item.badgeAlert && (
+                      <span className="text-xs px-2 py-0.5 rounded-full bg-accent text-[#2B0717] font-bold">
+                        Action
+                      </span>
+                    )}
+                  </div>
+                </button>
+              );
+            })}
+          </div>
 
-          {/* 3. Vinted Sync */}
-          <button
-            onClick={() => handleSelectTab('vinted')}
-            className={`w-full flex items-center justify-between px-3.5 py-2.5 rounded-sm text-sm font-medium transition-all ${
-              activeTab === 'vinted'
-                ? 'bg-surface-elevated text-primary font-bold border-l-4 border-accent'
-                : 'text-secondary hover:bg-surface-subtle'
-            }`}
-          >
-            <div className="flex items-center gap-2.5">
-              <RefreshCw size={17} className={soldCount > 0 ? "text-amber-500" : "text-profit"} />
-              <span>Vinted Sync</span>
-            </div>
-            {soldCount > 0 ? (
-              <span className="font-mono text-xs px-2 py-0.5 bg-amber-500/20 text-amber-600 dark:text-amber-400 border border-amber-500/40 rounded-full font-bold">
-                {soldCount} sold
-              </span>
-            ) : (
-              <span className="font-mono text-xs px-2 py-0.5 bg-profit-soft text-profit rounded-full font-bold">
-                {vintedCount} listed
-              </span>
-            )}
-          </button>
-
-          {/* 4. Quick Add (+ Photo) */}
-          <button
-            onClick={() => handleSelectTab('add')}
-            className={`w-full flex items-center justify-between px-3.5 py-2.5 rounded-sm text-sm font-medium transition-all ${
-              activeTab === 'add'
-                ? 'bg-surface-elevated text-primary font-bold border-l-4 border-accent'
-                : 'text-secondary hover:bg-surface-subtle'
-            }`}
-          >
-            <div className="flex items-center gap-2.5">
-              <PlusCircle size={17} className="text-accent" />
-              <span>Quick Add (+ Photo)</span>
-            </div>
-          </button>
-
-          {/* Cloud Database Sync in Mobile Drawer */}
-          {onOpenCloudModal && (
-            <div className="pt-2 border-t border-border mt-2">
+          {/* Bottom Controls */}
+          <div className="pt-4 border-t border-[rgba(255,190,220,0.10)] space-y-3">
+            
+            {/* Account & Status info */}
+            <div className="flex items-center justify-between text-xs px-2 text-secondary">
+              <div className="flex items-center gap-2">
+                <span className="w-2 h-2 rounded-full bg-menthe" />
+                <span>@nuzhdina.ri (Vinted)</span>
+              </div>
               <button
                 onClick={() => {
                   setMobileMenuOpen(false);
-                  onOpenCloudModal();
+                  if (onOpenCloudModal) onOpenCloudModal();
                 }}
-                className="w-full flex items-center justify-between px-3.5 py-2 rounded-sm text-xs font-semibold text-secondary hover:bg-surface-subtle transition-all"
+                className={`font-medium ${isCloudConnected ? 'text-menthe' : 'text-corail'} hover:underline`}
               >
-                <div className="flex items-center gap-2">
-                  <Cloud size={16} className={isCloudConnected ? 'text-profit' : 'text-accent'} />
-                  <span>Cloud Database Sync</span>
-                </div>
-                <span className={`font-mono text-[10px] px-1.5 py-0.5 rounded-sm ${
-                  isCloudConnected ? 'bg-profit-soft text-profit font-bold' : 'bg-surface border text-tertiary'
-                }`}>
-                  {isCloudConnected ? 'LIVE' : 'LOCAL'}
-                </span>
+                {isCloudConnected ? 'Cloud actif' : 'Configurer Cloud'}
               </button>
             </div>
-          )}
 
-          {/* Installation PWA in Burger Menu */}
-          {!isStandalone && onOpenInstallModal && (
-            <div className="pt-2 border-t border-border mt-2">
+            {/* Sync Now button */}
+            {onSyncNow && (
+              <button
+                onClick={handleManualSync}
+                disabled={isSyncing}
+                className="w-full min-h-[46px] flex items-center justify-center gap-2 rounded-full bg-white/[0.04] border border-[rgba(255,190,220,0.12)] text-primary hover:bg-white/[0.08] text-xs font-medium transition-all"
+              >
+                <RefreshCw size={14} className={isSyncing ? "animate-spin text-accent" : "text-secondary"} />
+                <span>{isSyncing ? 'Synchronisation en cours...' : 'Synchroniser maintenant'}</span>
+              </button>
+            )}
+
+            {/* Install PWA button (if available and not installed) */}
+            {!isStandalone && onOpenInstallModal && (
               <button
                 onClick={() => {
                   setMobileMenuOpen(false);
                   onOpenInstallModal();
                 }}
-                className="w-full flex items-center justify-center gap-2 px-3.5 py-2.5 rounded-sm text-xs font-bold uppercase tracking-wider bg-accent text-white hover:brightness-110 shadow-sm transition-all"
+                className="w-full min-h-[46px] flex items-center justify-center gap-2 rounded-full bg-[rgba(255,143,192,0.10)] border border-[rgba(255,143,192,0.25)] text-accent-pale text-xs font-medium transition-all"
               >
-                <Download size={16} />
-                <span>Install on Device</span>
+                <Smartphone size={14} />
+                <span>Installer l'application</span>
               </button>
-            </div>
-          )}
-        </nav>
+            )}
+
+          </div>
+
+        </div>
       )}
-    </header>
+    </>
   );
 };

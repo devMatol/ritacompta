@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Cloud, Check, X, AlertCircle, Database, Copy, RefreshCw, Smartphone } from 'lucide-react';
+import { Cloud, Check, X, AlertCircle, Database, Copy, RefreshCw } from 'lucide-react';
 import { getSupabaseConfig, saveSupabaseConfig, clearSupabaseConfig, getSupabaseClient } from '../db/supabase';
 
 interface CloudSyncModalProps {
@@ -26,34 +26,33 @@ export const CloudSyncModal: React.FC<CloudSyncModalProps> = ({
     e.preventDefault();
     if (!url.trim() || !key.trim()) {
       setStatus('error');
-      setStatusMsg('Please provide both Project URL and Anon Key.');
+      setStatusMsg('Veuillez renseigner l’URL du projet et la clé publique Anon.');
       return;
     }
 
     setStatus('testing');
-    setStatusMsg('Testing connection to Supabase...');
+    setStatusMsg('Test de la connexion Supabase...');
 
     try {
       saveSupabaseConfig(url, key);
       const client = getSupabaseClient();
-      if (!client) throw new Error('Could not initialize Supabase client.');
+      if (!client) throw new Error('Impossible d’initialiser le client Supabase.');
 
-      // Test query
-      const { data, error } = await client.from('items').select('id').limit(1);
+      const { error } = await client.from('items').select('id').limit(1);
       if (error) {
-        throw new Error(`Database responded with error: ${error.message}. (Did you run the SQL schema in Supabase?)`);
+        throw new Error(`Erreur de base de données : ${error.message}`);
       }
 
       setStatus('success');
-      setStatusMsg('Connected successfully! Real-time multi-device sync is now active.');
+      setStatusMsg('Connecté avec succès ! Synchronisation temps réel active.');
       onSyncSuccess();
       setTimeout(() => {
         onClose();
-      }, 1200);
+      }, 1000);
     } catch (err: any) {
       console.error(err);
       setStatus('error');
-      setStatusMsg(err.message || 'Connection failed.');
+      setStatusMsg(err.message || 'Échec de connexion.');
     }
   };
 
@@ -62,7 +61,7 @@ export const CloudSyncModal: React.FC<CloudSyncModalProps> = ({
     setUrl('');
     setKey('');
     setStatus('idle');
-    setStatusMsg('Cloud synchronization disconnected. Operating in local mode.');
+    setStatusMsg('Synchronisation déconnectée. Fonctionnement en mode local.');
     onSyncSuccess();
   };
 
@@ -124,67 +123,67 @@ alter publication supabase_realtime add table vinted_catalog;`;
 
     navigator.clipboard.writeText(sql);
     setCopiedSql(true);
-    setTimeout(() => setCopiedSql(false), 2500);
+    setTimeout(() => setCopiedSql(false), 2000);
   };
 
   return (
-    <div className="fixed inset-0 z-50 bg-black/65 backdrop-blur-sm flex items-center justify-center p-4">
-      <div className="bg-surface border border-border-strong rounded-md w-full max-w-lg p-6 shadow-2xl animate-fade-in max-h-[90vh] overflow-y-auto">
+    <div className="fixed inset-0 z-50 bg-[#0E0A0D]/80 backdrop-blur-md flex items-center justify-center p-4">
+      <div className="card-glossy w-full max-w-lg p-5 sm:p-6 shadow-2xl animate-fade-in max-h-[90vh] overflow-y-auto">
         
-        <div className="flex justify-between items-baseline border-b border-border pb-3 mb-4">
+        <div className="flex justify-between items-baseline pb-3 mb-4 border-b border-[rgba(255,190,220,0.07)]">
           <div className="flex items-center gap-2">
-            <Cloud size={18} className="text-accent" />
-            <h3 className="font-heading text-lg font-bold text-primary">Live Cloud Database Sync</h3>
+            <Cloud size={18} className="text-accent-light" />
+            <h3 className="text-base sm:text-lg font-bold text-primary">Synchronisation Cloud Supabase</h3>
           </div>
-          <button onClick={onClose} className="text-secondary hover:text-primary p-1">
+          <button onClick={onClose} className="p-1 rounded-full text-secondary hover:text-primary transition-all">
             <X size={18} />
           </button>
         </div>
 
         <p className="text-xs text-secondary leading-relaxed mb-4">
-          Connect your free Supabase database so Rita's phone, your computer, and any Vercel deployment share the exact same live inventory in real time.
+          Connectez votre base Supabase gratuite pour synchroniser en direct l’inventaire entre téléphone, ordinateur et déploiement Vercel.
         </p>
 
         {currentConfig.isConfigured ? (
-          <div className="p-3.5 bg-profit-soft border border-profit/30 rounded-sm mb-5 flex items-center justify-between">
-            <div className="flex items-center gap-2 text-xs font-semibold text-profit">
-              <span className="w-2 h-2 rounded-full bg-profit animate-pulse"></span>
-              <span>Cloud Connected & Real-time Live</span>
+          <div className="p-3.5 bg-[rgba(127,227,181,0.12)] border border-menthe/30 rounded-xl mb-4 flex items-center justify-between">
+            <div className="flex items-center gap-2 text-xs font-semibold text-menthe">
+              <span className="w-2 h-2 rounded-full bg-menthe shadow-[0_0_8px_rgba(127,227,181,0.6)]" />
+              <span>Connecté au cloud & temps réel actif</span>
             </div>
             <button
               onClick={handleDisconnect}
-              className="text-[11px] text-danger hover:underline font-mono"
+              className="text-[11px] text-corail hover:underline"
             >
-              Disconnect
+              Déconnecter
             </button>
           </div>
         ) : (
-          <div className="p-3 bg-surface-subtle border border-border rounded-sm mb-5 text-xs text-secondary flex items-start gap-2.5">
-            <Database size={16} className="text-accent shrink-0 mt-0.5" />
+          <div className="p-3 bg-white/[0.02] border border-[rgba(255,190,220,0.08)] rounded-xl mb-4 text-xs text-secondary flex items-start gap-2.5">
+            <Database size={16} className="text-accent-light shrink-0 mt-0.5" />
             <div>
-              <strong className="text-primary font-semibold">Running in Local Mode:</strong> Changes are currently saved inside this browser only. Configure Supabase below to enable live multi-device sync across phones and computers.
+              <strong className="text-primary font-medium">Mode local :</strong> Les données sont actuellement stockées sur cet appareil uniquement.
             </div>
           </div>
         )}
 
-        <form onSubmit={handleTestAndSave} className="space-y-4">
+        <form onSubmit={handleTestAndSave} className="space-y-3.5">
           <div>
-            <label className="block text-xs uppercase tracking-wider font-semibold text-secondary mb-1">
-              Supabase Project URL
+            <label className="block text-xs font-normal text-secondary mb-1">
+              URL du projet Supabase
             </label>
             <input
               type="url"
               required
-              placeholder="https://xyzcompany.supabase.co"
+              placeholder="https://xyz.supabase.co"
               value={url}
               onChange={(e) => setUrl(e.target.value)}
-              className="w-full px-3 py-2 font-mono text-xs bg-surface border border-border-strong rounded-sm outline-none focus:border-accent"
+              className="w-full px-3 py-2 font-mono text-xs bg-white/[0.04] border border-[rgba(255,190,220,0.12)] rounded-xl text-primary outline-none focus:border-accent-light"
             />
           </div>
 
           <div>
-            <label className="block text-xs uppercase tracking-wider font-semibold text-secondary mb-1">
-              Supabase Anon / Public Key
+            <label className="block text-xs font-normal text-secondary mb-1">
+              Clé publique Anon
             </label>
             <input
               type="text"
@@ -192,68 +191,59 @@ alter publication supabase_realtime add table vinted_catalog;`;
               placeholder="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
               value={key}
               onChange={(e) => setKey(e.target.value)}
-              className="w-full px-3 py-2 font-mono text-xs bg-surface border border-border-strong rounded-sm outline-none focus:border-accent"
+              className="w-full px-3 py-2 font-mono text-xs bg-white/[0.04] border border-[rgba(255,190,220,0.12)] rounded-xl text-primary outline-none focus:border-accent-light"
             />
           </div>
 
           {status === 'testing' && (
-            <div className="flex items-center gap-2 text-xs text-accent font-medium">
+            <div className="flex items-center gap-2 text-xs text-accent-light font-medium">
               <RefreshCw size={13} className="animate-spin" />
               <span>{statusMsg}</span>
             </div>
           )}
 
           {status === 'success' && (
-            <div className="flex items-center gap-2 text-xs text-profit font-medium">
+            <div className="flex items-center gap-2 text-xs text-menthe font-medium">
               <Check size={14} />
               <span>{statusMsg}</span>
             </div>
           )}
 
           {status === 'error' && (
-            <div className="flex items-start gap-2 text-xs text-danger font-medium p-2.5 bg-danger/10 border border-danger/20 rounded-sm">
+            <div className="flex items-start gap-2 text-xs text-corail font-medium p-2.5 bg-corail/10 border border-corail/25 rounded-xl">
               <AlertCircle size={14} className="shrink-0 mt-0.5" />
               <span>{statusMsg}</span>
             </div>
           )}
 
-          <div className="flex justify-between items-center pt-2">
+          <div className="flex flex-col sm:flex-row justify-between items-stretch sm:items-center gap-2 pt-2">
             <button
               type="button"
               onClick={handleCopySql}
-              className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold bg-surface-subtle border border-border rounded-sm hover:border-accent text-secondary hover:text-primary transition-all"
-              title="Copy the SQL table creation script to run in Supabase SQL editor"
+              className="inline-flex items-center justify-center gap-1.5 px-3 py-1.5 text-xs rounded-full btn-secondary-glossy"
             >
               <Copy size={13} />
-              <span>{copiedSql ? 'SQL Script Copied!' : 'Copy SQL Schema'}</span>
+              <span>{copiedSql ? 'Schéma SQL copié !' : 'Copier le schéma SQL'}</span>
             </button>
 
-            <div className="flex gap-2">
+            <div className="flex justify-end gap-2">
               <button
                 type="button"
                 onClick={onClose}
-                className="px-3.5 py-1.5 text-xs font-semibold bg-surface border border-border rounded-sm hover:bg-surface-subtle text-secondary"
+                className="px-4 py-2 text-xs rounded-full btn-secondary-glossy"
               >
-                Close
+                Fermer
               </button>
               <button
                 type="submit"
                 disabled={status === 'testing'}
-                className="px-4 py-1.5 text-xs font-bold uppercase tracking-wider bg-accent text-white rounded-sm hover:brightness-110 shadow-sm transition-all"
+                className="px-4 py-2 text-xs font-semibold rounded-full bg-[rgba(255,143,192,0.18)] border border-[rgba(255,143,192,0.35)] text-accent-pale hover:bg-[rgba(255,143,192,0.28)] transition-all cursor-pointer"
               >
-                Save & Connect
+                Sauvegarder
               </button>
             </div>
           </div>
         </form>
-
-        <div className="mt-6 pt-4 border-t border-border text-[11px] text-tertiary space-y-1">
-          <div><strong className="text-secondary">On Vercel:</strong> You can also set these environment variables directly in your Vercel Project Settings:</div>
-          <div className="font-mono bg-surface-subtle p-2 rounded-sm border border-border text-secondary">
-            VITE_SUPABASE_URL=https://...supabase.co<br />
-            VITE_SUPABASE_ANON_KEY=eyJ...
-          </div>
-        </div>
 
       </div>
     </div>

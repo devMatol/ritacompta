@@ -3,76 +3,120 @@
 @tailwind utilities;
 
 :root {
-  /* Thème Par Défaut : Hôtel Drouot (Enchères & Bordeaux / Space Grotesk) */
-  --bg-canvas: #F5F1EA;
-  --bg-surface: #FCFAF6;
-  --bg-surface-subtle: #E8E1D3;
-  --bg-surface-elevated: #DBD1BE;
-  --text-primary: #141210;
-  --text-secondary: #5C5449;
-  --text-tertiary: #8C8274;
-  --border-color: rgba(20, 18, 16, 0.20);
-  --border-strong: rgba(20, 18, 16, 0.32);
-  --accent: #966A38; /* Bronze Antique / Cognac */
-  --accent-soft: rgba(150, 106, 56, 0.12);
-  --profit: #1B4D3E; /* Vert Archive */
-  --profit-soft: rgba(27, 77, 62, 0.12);
-  --danger: #782633; /* Bordeaux Drouot */
-  --danger-soft: rgba(120, 38, 51, 0.12);
-  --warning: #A36B15;
-  --warning-soft: rgba(163, 107, 21, 0.14);
-
-  --font-serif: 'Instrument Serif', Georgia, serif;
-  --font-sans: 'Plus Jakarta Sans', -apple-system, sans-serif;
-  --font-grotesk: 'Space Grotesk', sans-serif;
-  --font-mono: 'JetBrains Mono', monospace;
-
-  --font-heading: var(--font-grotesk);
-  --font-body: var(--font-sans);
-  --font-metric: var(--font-mono);
-
-  --radius-sm: 2px;
-  --radius-md: 4px;
-  --radius-lg: 6px;
-  --transition-craft: cubic-bezier(0.22, 1, 0.36, 1);
+  --bg-canvas: #0E0A0D;
+  --bg-surface: #17111A;
+  --text-primary: #F6EEF2;
+  --text-secondary: #B9A7B1;
+  --text-tertiary: #9C8A95;
+  --accent: #FF5FA2;
+  --accent-light: #FF8FC0;
+  --accent-pale: #FFD1E5;
+  --menthe: #7FE3B5;
+  --corail: #FF8A80;
+  --border-color: rgba(255, 190, 220, 0.10);
 }
 
-[data-theme="salons"] {
-  --bg-canvas: #FAF8F5;
-  --bg-surface: #FFFFFF;
-  --bg-surface-subtle: #F3EFEA;
-  --bg-surface-elevated: #EDE7DF;
-  --text-primary: #1C1917;
-  --text-secondary: #68625B;
-  --border-color: rgba(28, 25, 23, 0.14);
-  --border-strong: rgba(28, 25, 23, 0.25);
-  --accent: #9A6F3E;
-  --profit: #2E5C46;
-  --font-heading: 'Instrument Serif', Georgia, serif;
-}
-
-[data-theme="quiet-luxury"] {
-  --bg-canvas: #F4F3EF;
-  --bg-surface: #FBFBF9;
-  --bg-surface-subtle: #EBE9E1;
-  --bg-surface-elevated: #DFDCD2;
-  --text-primary: #111111;
-  --text-secondary: #575752;
-  --border-color: rgba(17, 17, 17, 0.12);
-  --border-strong: rgba(17, 17, 17, 0.25);
-  --accent: #2A2A2A;
-  --profit: #224233;
-  --font-heading: 'Space Grotesk', sans-serif;
+* {
+  font-variant-numeric: tabular-nums;
+  box-sizing: border-box;
 }
 
 body {
-  background-color: var(--bg-canvas);
-  color: var(--text-primary);
-  font-family: var(--font-body);
+  background-color: #0E0A0D;
+  color: #F6EEF2;
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+  font-variant-numeric: tabular-nums;
   font-size: 14.5px;
   line-height: 1.5;
   -webkit-font-smoothing: antialiased;
   min-height: 100vh;
+  position: relative;
+  overflow-x: hidden;
+}
+
+/* Halo rose très léger en haut de page */
+body::before {
+  content: '';
+  position: fixed;
+  top: 0;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 100vw;
+  max-width: 1200px;
+  height: 480px;
+  background: radial-gradient(ellipse 70% 50% at 50% -10%, rgba(255, 95, 162, 0.12), transparent 70%);
+  pointer-events: none;
+  z-index: 0;
+}
+
+/* Base card glossy styling */
+.card-glossy {
+  background-color: #17111A;
+  background-image: linear-gradient(180deg, rgba(255, 255, 255, 0.06) 0%, rgba(255, 255, 255, 0.015) 100%);
+  border: 1px solid rgba(255, 190, 220, 0.10);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.07);
+  border-radius: 20px;
+}
+
+/* Hero pink glossy card (Bénéfice net) */
+.card-hero-pink {
+  background: linear-gradient(160deg, #FFC2DD 0%, #FF5FA2 50%, #D63A80 100%);
+  border-radius: 20px;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.4), 0 8px 32px -8px rgba(255, 95, 162, 0.35);
+  position: relative;
+  overflow: hidden;
+  color: #2B0717;
+}
+
+.card-hero-pink::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 50%;
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.22) 0%, rgba(255, 255, 255, 0) 100%);
+  pointer-events: none;
+  border-top-left-radius: 20px;
+  border-top-right-radius: 20px;
+}
+
+/* Seul bouton plein rose de l'application (Ajout rapide - Enregistrer l'achat) */
+.btn-primary-pink {
+  background: linear-gradient(180deg, #FFB3D6 0%, #FF5FA2 50%, #E0408A 100%);
+  color: #2B0717;
+  font-weight: 700;
+  border-radius: 20px;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.35), 0 4px 16px -2px rgba(255, 95, 162, 0.35);
+  transition: all 0.2s ease;
+}
+
+.btn-primary-pink:hover {
+  filter: brightness(1.08);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.45), 0 6px 20px -2px rgba(255, 95, 162, 0.5);
+}
+
+.btn-primary-pink:active {
+  transform: scale(0.98);
+}
+
+/* Secondary glossy button (rose translucide) */
+.btn-secondary-glossy {
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(255, 190, 220, 0.14);
+  color: #F6EEF2;
+  border-radius: 999px;
+  transition: all 0.2s ease;
+}
+
+.btn-secondary-glossy:hover {
+  background: rgba(255, 143, 192, 0.12);
+  border-color: rgba(255, 143, 192, 0.35);
+  color: #FFD1E5;
+}
+
+.btn-secondary-glossy:active {
+  transform: scale(0.97);
 }
 
 /* Animations */
@@ -82,5 +126,21 @@ body {
 }
 
 .animate-fade-in {
-  animation: fadeIn 0.25s var(--transition-craft) forwards;
+  animation: fadeIn 0.25s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+}
+
+/* Custom scrollbar */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+::-webkit-scrollbar-track {
+  background: #0E0A0D;
+}
+::-webkit-scrollbar-thumb {
+  background: rgba(255, 190, 220, 0.15);
+  border-radius: 999px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 143, 192, 0.3);
 }

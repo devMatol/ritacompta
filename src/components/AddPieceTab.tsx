@@ -1,7 +1,7 @@
 import React, { useState, useRef } from 'react';
 import { Item, VintedItem } from '../types';
 import { smartMatch } from '../services/matching';
-import { Camera, X } from 'lucide-react';
+import { Camera, X, Check } from 'lucide-react';
 
 interface AddPieceTabProps {
   onAddItem: (item: Item) => void;
@@ -16,9 +16,9 @@ export const AddPieceTab: React.FC<AddPieceTabProps> = ({
 }) => {
   const [brand, setBrand] = useState('');
   const [title, setTitle] = useState('');
-  const [category, setCategory] = useState('Jackets & Coats');
+  const [category, setCategory] = useState('Vestes & Manteaux');
   const [size, setSize] = useState('M');
-  const [source, setSource] = useState('Flea Market');
+  const [source, setSource] = useState('Marché / Brocante');
   const [purchasePrice, setPurchasePrice] = useState('');
   const [targetPrice, setTargetPrice] = useState('');
   const [photoBase64, setPhotoBase64] = useState<string>('');
@@ -34,7 +34,9 @@ export const AddPieceTab: React.FC<AddPieceTabProps> = ({
     'Hermès',
     'Courrèges',
     'Morgan',
-    'Diesel'
+    'Diesel',
+    'Balenciaga',
+    'Gucci'
   ];
 
   const handlePhotoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -58,7 +60,7 @@ export const AddPieceTab: React.FC<AddPieceTabProps> = ({
     const tPrice = !isNaN(parsedTarget) ? Math.max(0, parsedTarget) : (pPrice !== null && pPrice > 0 ? pPrice * 2.5 : 0);
 
     const newItem: Item = {
-      id: `LOT-0${existingItemsCount + 1}`,
+      id: `RITA-${String(existingItemsCount + 1).padStart(3, '0')}`,
       brand: brand.trim(),
       title: title.trim(),
       category,
@@ -76,9 +78,9 @@ export const AddPieceTab: React.FC<AddPieceTabProps> = ({
     // Instant Match feedback
     const match = smartMatch(newItem, vintedCatalog);
     if (match.matched) {
-      alert(`Item recorded successfully.\nSmart reconciliation found a matching listing on Vinted: "${match.vintedItem?.title}" (${match.vintedItem?.price} €).`);
+      alert(`Pièce ajoutée au stock.\nRéconciliation Vinted automatique : "${match.vintedItem?.title}" (${match.vintedItem?.price} €).`);
     } else {
-      alert(`Item recorded into archive.\nThis piece was not found in your Vinted listings (flagged as "Not on Vinted").`);
+      alert(`Pièce enregistrée dans l'inventaire.`);
     }
 
     // Reset
@@ -91,24 +93,26 @@ export const AddPieceTab: React.FC<AddPieceTabProps> = ({
   };
 
   return (
-    <div className="max-w-2xl mx-auto bg-surface border border-border rounded-md p-6 sm:p-8 shadow-sm">
-      <div className="border-b border-border pb-4 mb-6">
-        <h2 className="font-heading text-2xl font-bold text-primary">Record an Express Purchase</h2>
-        <p className="text-xs text-secondary mt-1">
-          Capture or upload a photo of the item to archive it with exact acquisition cost.
+    <div className="max-w-2xl mx-auto p-5 sm:p-7 card-glossy animate-fade-in">
+      <div className="pb-4 mb-5 border-b border-[rgba(255,190,220,0.07)]">
+        <h1 className="text-xl sm:text-2xl font-bold text-primary tracking-tight">
+          Ajout rapide d'une pièce
+        </h1>
+        <p className="text-xs text-secondary mt-0.5">
+          Prenez une photo et enregistrez votre coût d'acquisition pour alimenter le stock.
         </p>
       </div>
 
-      <form onSubmit={handleSubmit} className="space-y-5">
+      <form onSubmit={handleSubmit} className="space-y-4">
         
         {/* Photo Upload Box */}
         <div>
-          <label className="block text-xs uppercase tracking-wider font-semibold text-secondary mb-1.5">
-            Item Photo (Camera / Upload)
+          <label className="block text-xs font-normal text-secondary mb-1.5">
+            Photo de la pièce
           </label>
           <div
             onClick={() => fileInputRef.current?.click()}
-            className="border-2 border-dashed border-border-strong rounded-md p-4 text-center bg-surface-subtle hover:border-accent cursor-pointer transition-all"
+            className="border-2 border-dashed border-[rgba(255,190,220,0.14)] hover:border-accent-light rounded-xl p-4 text-center bg-white/[0.02] cursor-pointer transition-all"
           >
             <input
               type="file"
@@ -122,11 +126,11 @@ export const AddPieceTab: React.FC<AddPieceTabProps> = ({
               <div className="flex items-center justify-center gap-4">
                 <img
                   src={photoBase64}
-                  alt="Preview"
-                  className="w-16 h-16 object-cover rounded-sm border border-border"
+                  alt="Aperçu"
+                  className="w-16 h-16 object-cover rounded-lg border border-[rgba(255,190,220,0.12)]"
                 />
                 <div className="text-left">
-                  <div className="text-xs font-semibold text-primary">Photo ready for archive</div>
+                  <div className="text-xs font-medium text-primary">Photo prête pour le stock</div>
                   <button
                     type="button"
                     onClick={(e) => {
@@ -134,45 +138,46 @@ export const AddPieceTab: React.FC<AddPieceTabProps> = ({
                       setPhotoBase64('');
                       if (fileInputRef.current) fileInputRef.current.value = '';
                     }}
-                    className="inline-flex items-center gap-1 text-[11px] text-danger hover:underline mt-1"
+                    className="inline-flex items-center gap-1 text-[11px] text-corail hover:underline mt-1"
                   >
                     <X size={12} />
-                    <span>Remove photo</span>
+                    <span>Retirer la photo</span>
                   </button>
                 </div>
               </div>
             ) : (
               <div>
-                <div className="flex justify-center gap-2 text-2xl mb-1 text-accent">
-                  <Camera size={26} />
+                <div className="flex justify-center text-accent mb-1.5">
+                  <Camera size={26} strokeWidth={1.5} />
                 </div>
-                <div className="text-xs font-bold text-primary">Take a photo or upload an image</div>
-                <div className="text-[11px] text-tertiary mt-0.5">Smartphone camera, webcam or drag and drop</div>
+                <div className="text-xs font-medium text-primary">Prendre une photo ou importer une image</div>
+                <div className="text-[11px] text-tertiary mt-0.5">Appareil photo smartphone ou fichier</div>
               </div>
             )}
           </div>
         </div>
 
-        {/* Brand */}
+        {/* Marque */}
         <div>
-          <label className="block text-xs uppercase tracking-wider font-semibold text-secondary mb-1.5">
-            Brand
+          <label className="block text-xs font-normal text-secondary mb-1">
+            Marque *
           </label>
           <input
             type="text"
             required
-            placeholder="e.g. Dolce & Gabbana, Burberry, Céline, Yves Saint Laurent..."
+            placeholder="Ex : Dolce & Gabbana, Céline, Courrèges..."
             value={brand}
-            onChange={(e) => setBrand(e.target.value)}
-            className="w-full px-3 py-2 text-sm bg-surface border border-border-strong rounded-sm outline-none focus:border-accent"
+            onChange={e => setBrand(e.target.value)}
+            className="w-full px-3.5 py-2.5 text-xs bg-white/[0.04] border border-[rgba(255,190,220,0.12)] rounded-xl text-primary placeholder:text-tertiary outline-none focus:border-accent-light focus:shadow-[0_0_12px_rgba(255,95,162,0.20)] transition-all"
           />
+          {/* Quick brand pills */}
           <div className="flex flex-wrap gap-1.5 mt-2">
-            {brandSuggestions.map((b) => (
+            {brandSuggestions.slice(0, 6).map(b => (
               <button
                 key={b}
                 type="button"
                 onClick={() => setBrand(b)}
-                className="px-2 py-0.5 text-xs bg-surface-subtle border border-border rounded-sm hover:border-accent text-secondary hover:text-primary transition-all"
+                className="text-[11px] px-2 py-0.5 rounded-full bg-white/[0.03] hover:bg-white/[0.08] text-secondary hover:text-primary transition-all border border-[rgba(255,190,220,0.08)]"
               >
                 {b}
               </button>
@@ -180,126 +185,116 @@ export const AddPieceTab: React.FC<AddPieceTabProps> = ({
           </div>
         </div>
 
-        {/* Title & Category */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-          <div>
-            <label className="block text-xs uppercase tracking-wider font-semibold text-secondary mb-1.5">
-              Item Name / Model
-            </label>
-            <input
-              type="text"
-              required
-              placeholder="e.g. Denim jacket 00s, Beige trench coat..."
-              value={title}
-              onChange={(e) => setTitle(e.target.value)}
-              className="w-full px-3 py-2 text-sm bg-surface border border-border-strong rounded-sm outline-none focus:border-accent"
-            />
-          </div>
+        {/* Intitulé */}
+        <div>
+          <label className="block text-xs font-normal text-secondary mb-1">
+            Intitulé de la pièce *
+          </label>
+          <input
+            type="text"
+            required
+            placeholder="Ex : Veste en cuir vintage coupe cintrée..."
+            value={title}
+            onChange={e => setTitle(e.target.value)}
+            className="w-full px-3.5 py-2.5 text-xs bg-white/[0.04] border border-[rgba(255,190,220,0.12)] rounded-xl text-primary placeholder:text-tertiary outline-none focus:border-accent-light focus:shadow-[0_0_12px_rgba(255,95,162,0.20)] transition-all"
+          />
+        </div>
 
+        {/* Catégorie & Taille */}
+        <div className="grid grid-cols-2 gap-3">
           <div>
-            <label className="block text-xs uppercase tracking-wider font-semibold text-secondary mb-1.5">
-              Category
+            <label className="block text-xs font-normal text-secondary mb-1">
+              Catégorie
             </label>
             <select
               value={category}
-              onChange={(e) => setCategory(e.target.value)}
-              className="w-full px-3 py-2 text-sm bg-surface border border-border-strong rounded-sm outline-none focus:border-accent"
+              onChange={e => setCategory(e.target.value)}
+              className="w-full px-3 py-2.5 text-xs bg-white/[0.04] border border-[rgba(255,190,220,0.12)] rounded-xl text-primary outline-none focus:border-accent-light cursor-pointer"
             >
-              <option value="Jackets & Coats">Jackets & Coats</option>
-              <option value="Bags & Leather Goods">Bags & Leather Goods</option>
-              <option value="Shoes & Boots">Shoes & Boots</option>
-              <option value="Skirts & Trousers">Skirts & Trousers</option>
-              <option value="Dresses & Suits">Dresses & Suits</option>
-              <option value="Scarves & Silks">Scarves & Silks</option>
-              <option value="Knitwear & Sweaters">Knitwear & Sweaters</option>
-              <option value="Tops & Shirts">Tops & Shirts</option>
-              <option value="Accessories">Accessories</option>
+              <option value="Vestes & Manteaux" className="bg-[#17111A]">Vestes & Manteaux</option>
+              <option value="Hauts & Mailles" className="bg-[#17111A]">Hauts & Mailles</option>
+              <option value="Robes & Jupes" className="bg-[#17111A]">Robes & Jupes</option>
+              <option value="Pantalons & Jeans" className="bg-[#17111A]">Pantalons & Jeans</option>
+              <option value="Sacs & Maroquinerie" className="bg-[#17111A]">Sacs & Maroquinerie</option>
+              <option value="Chaussures" className="bg-[#17111A]">Chaussures</option>
+              <option value="Accessoires" className="bg-[#17111A]">Accessoires</option>
             </select>
           </div>
-        </div>
 
-        {/* Size & Source */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <div>
-            <label className="block text-xs uppercase tracking-wider font-semibold text-secondary mb-1.5">
-              Size
+            <label className="block text-xs font-normal text-secondary mb-1">
+              Taille
             </label>
             <input
               type="text"
+              placeholder="Ex : M, 38, Unique..."
               value={size}
-              onChange={(e) => setSize(e.target.value)}
-              placeholder="e.g. M, 38, One Size..."
-              className="w-full px-3 py-2 text-sm bg-surface border border-border-strong rounded-sm outline-none focus:border-accent"
+              onChange={e => setSize(e.target.value)}
+              className="w-full px-3.5 py-2.5 text-xs bg-white/[0.04] border border-[rgba(255,190,220,0.12)] rounded-xl text-primary placeholder:text-tertiary outline-none focus:border-accent-light focus:shadow-[0_0_12px_rgba(255,95,162,0.20)] transition-all"
             />
-          </div>
-
-          <div>
-            <label className="block text-xs uppercase tracking-wider font-semibold text-secondary mb-1.5">
-              Acquisition Source
-            </label>
-            <select
-              value={source}
-              onChange={(e) => setSource(e.target.value)}
-              className="w-full px-3 py-2 text-sm bg-surface border border-border-strong rounded-sm outline-none focus:border-accent"
-            >
-              <option value="Flea Market">Flea Market / Vintage Fair</option>
-              <option value="Vinted">Purchased on Vinted</option>
-              <option value="Consignment">Consignment Store</option>
-              <option value="Private Seller">Private Seller / Estate Sale</option>
-            </select>
           </div>
         </div>
 
-        {/* Prices */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+        {/* Prix d'achat & Prix cible */}
+        <div className="grid grid-cols-2 gap-3">
           <div>
-            <div className="flex items-center justify-between mb-1.5">
-              <label className="text-xs uppercase tracking-wider font-semibold text-secondary">
-                Purchase Cost (€)
-              </label>
-              <span className="font-mono text-[11px] text-profit font-semibold">
-                Can be 0 € (Personal / Free)
-              </span>
-            </div>
+            <label className="block text-xs font-normal text-secondary mb-1">
+              Prix d'achat (€)
+            </label>
             <input
               type="number"
               step="0.5"
-              min="0"
-              placeholder="0 (e.g. 0 if personal wardrobe or gift)"
+              placeholder="0 si gratuit"
               value={purchasePrice}
-              onChange={(e) => setPurchasePrice(e.target.value)}
-              className="w-full px-3 py-2 font-mono text-sm bg-surface border border-border-strong rounded-sm outline-none focus:border-accent"
+              onChange={e => setPurchasePrice(e.target.value)}
+              className="w-full px-3.5 py-2.5 text-xs font-mono bg-white/[0.04] border border-[rgba(255,190,220,0.12)] rounded-xl text-primary placeholder:text-tertiary outline-none focus:border-accent-light focus:shadow-[0_0_12px_rgba(255,95,162,0.20)] transition-all"
             />
-            <p className="text-[11px] text-tertiary mt-1">
-              Enter 0 € for personal dressing items, free stock, or gifts.
-            </p>
           </div>
 
           <div>
-            <label className="block text-xs uppercase tracking-wider font-semibold text-secondary mb-1.5">
-              Target Sale Price (€)
+            <label className="block text-xs font-normal text-secondary mb-1">
+              Prix de vente cible (€)
             </label>
             <input
               type="number"
               step="0.5"
-              min="0"
-              placeholder="e.g. 75 (desired sale price)"
+              placeholder="Automatique si vide"
               value={targetPrice}
-              onChange={(e) => setTargetPrice(e.target.value)}
-              className="w-full px-3 py-2 font-mono text-sm bg-surface border border-border-strong rounded-sm outline-none focus:border-accent"
+              onChange={e => setTargetPrice(e.target.value)}
+              className="w-full px-3.5 py-2.5 text-xs font-mono bg-white/[0.04] border border-[rgba(255,190,220,0.12)] rounded-xl text-primary placeholder:text-tertiary outline-none focus:border-accent-light focus:shadow-[0_0_12px_rgba(255,95,162,0.20)] transition-all"
             />
           </div>
         </div>
 
-        {/* Buttons */}
-        <div className="flex justify-end gap-3 pt-3">
+        {/* Provenance */}
+        <div>
+          <label className="block text-xs font-normal text-secondary mb-1">
+            Provenance / Source
+          </label>
+          <select
+            value={source}
+            onChange={e => setSource(e.target.value)}
+            className="w-full px-3 py-2.5 text-xs bg-white/[0.04] border border-[rgba(255,190,220,0.12)] rounded-xl text-primary outline-none focus:border-accent-light cursor-pointer"
+          >
+            <option value="Marché / Brocante" className="bg-[#17111A]">Marché aux puces / Brocante</option>
+            <option value="Vinted" className="bg-[#17111A]">Achat Vinted</option>
+            <option value="Dépôt-vente" className="bg-[#17111A]">Dépôt-vente</option>
+            <option value="Dressing personnel" className="bg-[#17111A]">Dressing personnel (Gratuit)</option>
+            <option value="Particulier" className="bg-[#17111A]">Vendeur particulier</option>
+          </select>
+        </div>
+
+        {/* Bouton "Enregistrer l'achat" : le SEUL bouton plein rose de l'appli */}
+        <div className="pt-3">
           <button
             type="submit"
-            className="px-5 py-2 text-xs font-bold uppercase tracking-wider bg-accent text-white rounded-sm hover:brightness-110 transition-all shadow-sm"
+            className="w-full min-h-[48px] py-3 px-6 text-sm font-bold rounded-2xl btn-primary-pink flex items-center justify-center gap-2 cursor-pointer"
           >
-            Save to Archive
+            <Check size={16} strokeWidth={2.5} />
+            <span>Enregistrer l'achat</span>
           </button>
         </div>
+
       </form>
     </div>
   );

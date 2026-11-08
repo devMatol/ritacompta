@@ -2,9 +2,10 @@ import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { useLiveQuery } from 'dexie-react-hooks';
 import { db, initDatabase, loadRealVintedDressing, seedInitialInventoryIfEmpty } from './db';
 import { Item, Sale, VintedItem } from './types';
-import { Header } from './components/Header';
+import { Header, TabType } from './components/Header';
 import { DashboardTab } from './components/DashboardTab';
 import { InventoryTab } from './components/InventoryTab';
+import { SalesTab } from './components/SalesTab';
 import { AddPieceTab } from './components/AddPieceTab';
 import { VintedReconciliationTab } from './components/VintedReconciliationTab';
 import { SaleModal } from './components/SaleModal';
@@ -27,7 +28,7 @@ import {
 
 export const App: React.FC = () => {
   // Sales Dashboard is in first position by default
-  const [activeTab, setActiveTab] = useState<'inventory' | 'vinted' | 'add' | 'dashboard'>('dashboard');
+  const [activeTab, setActiveTab] = useState<TabType>('dashboard');
 
   // Cloud Database Sync state
   const [isCloudModalOpen, setIsCloudModalOpen] = useState(false);
@@ -438,14 +439,13 @@ export const App: React.FC = () => {
   return (
     <div className="min-h-screen flex flex-col bg-canvas text-primary">
       
-      {/* Header with Mobile Burger Menu, Cloud Sync & PWA Install Button */}
+      {/* Header with Navigation Pills, Mobile Burger Menu, and Status Dot */}
       <Header
         activeTab={activeTab}
         onTabChange={setActiveTab}
         itemsCount={items.length}
-        vintedCount={vintedCatalog.length}
         salesCount={sales.length}
-        soldCount={soldOrMissingCount}
+        vintedActionCount={soldOrMissingCount}
         onOpenInstallModal={() => setIsInstallModalOpen(true)}
         onOpenCloudModal={() => setIsCloudModalOpen(true)}
         onSyncNow={syncWithCloud}
@@ -453,69 +453,20 @@ export const App: React.FC = () => {
         isCloudConnected={isCloudConnected}
       />
 
-      <main className="max-w-[1280px] w-full mx-auto px-4 sm:px-6 py-5 flex-1">
-        
-        {/* Desktop Navigation Tabs - Sales Dashboard in 1st position */}
-        <nav className="hidden md:flex items-center gap-1 border-b border-border mb-6 overflow-x-auto pb-px">
-          <button
-            onClick={() => setActiveTab('dashboard')}
-            className={`px-4 py-2.5 text-sm font-medium border-b-2 transition-all whitespace-nowrap flex items-center gap-2 ${
-              activeTab === 'dashboard'
-                ? 'border-accent text-primary font-bold'
-                : 'border-transparent text-secondary hover:text-primary'
-            }`}
-          >
-            <span>Sales Dashboard</span>
-            <span className="font-mono text-xs px-2 py-0.2 bg-surface-elevated text-secondary rounded-full">
-              {sales.length}
-            </span>
-          </button>
-          <button
-            onClick={() => setActiveTab('inventory')}
-            className={`px-4 py-2.5 text-sm font-medium border-b-2 transition-all whitespace-nowrap flex items-center gap-2 ${
-              activeTab === 'inventory'
-                ? 'border-accent text-primary font-bold'
-                : 'border-transparent text-secondary hover:text-primary'
-            }`}
-          >
-            <span>Active Inventory</span>
-            <span className="font-mono text-xs px-1.5 py-0.2 bg-surface-elevated text-secondary rounded-full">
-              {items.length}
-            </span>
-          </button>
-          <button
-            onClick={() => setActiveTab('vinted')}
-            className={`px-4 py-2.5 text-sm font-medium border-b-2 transition-all whitespace-nowrap flex items-center gap-2 ${
-              activeTab === 'vinted'
-                ? 'border-accent text-primary font-bold'
-                : 'border-transparent text-secondary hover:text-primary'
-            }`}
-          >
-            <span>Vinted Sync</span>
-            {soldOrMissingCount > 0 ? (
-              <span className="font-mono text-xs px-2 py-0.2 bg-amber-500/20 text-amber-600 dark:text-amber-400 border border-amber-500/40 rounded-full font-bold">
-                {soldOrMissingCount} sold
-              </span>
-            ) : (
-              <span className="font-mono text-xs px-2 py-0.2 bg-profit-soft text-profit rounded-full font-bold">
-                {vintedCatalog.length} listed
-              </span>
-            )}
-          </button>
-          <button
-            onClick={() => setActiveTab('add')}
-            className={`px-4 py-2.5 text-sm font-medium border-b-2 transition-all whitespace-nowrap ${
-              activeTab === 'add'
-                ? 'border-accent text-primary font-bold'
-                : 'border-transparent text-secondary hover:text-primary'
-            }`}
-          >
-            Quick Add (+ Photo)
-          </button>
-        </nav>
-
+      <main className="max-w-[1320px] w-full mx-auto px-4 sm:px-6 py-5 sm:py-7 flex-1">
         {/* Tab Views */}
         <div className="animate-fade-in">
+          {activeTab === 'dashboard' && (
+            <DashboardTab
+              sales={sales}
+              items={items}
+              vintedCatalog={vintedCatalog}
+              onNavigateAdd={() => setActiveTab('add')}
+              onNavigateInventory={() => setActiveTab('inventory')}
+              onNavigateVinted={() => setActiveTab('vinted')}
+              onOpenSaleModal={handleOpenSaleModal}
+            />
+          )}
           {activeTab === 'inventory' && (
             <InventoryTab
               items={items}
@@ -523,6 +474,12 @@ export const App: React.FC = () => {
               onOpenSaleModal={handleOpenSaleModal}
               onNavigateAdd={() => setActiveTab('add')}
               onUpdatePurchasePrice={handleUpdatePurchasePrice}
+              onDeleteItem={handleDeleteItem}
+            />
+          )}
+          {activeTab === 'sales' && (
+            <SalesTab
+              sales={sales}
             />
           )}
           {activeTab === 'vinted' && (
@@ -542,14 +499,6 @@ export const App: React.FC = () => {
               onAddItem={handleAddItem}
               vintedCatalog={vintedCatalog}
               existingItemsCount={items.length + sales.length}
-            />
-          )}
-          {activeTab === 'dashboard' && (
-            <DashboardTab
-              sales={sales}
-              items={items}
-              onNavigateAdd={() => setActiveTab('add')}
-              onNavigateInventory={() => setActiveTab('inventory')}
             />
           )}
         </div>

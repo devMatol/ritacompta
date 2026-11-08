@@ -1,7 +1,8 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect, useRef } from 'react';
 import { Item, VintedItem } from '../types';
 import { smartMatch, isCostSet } from '../services/matching';
-import { Search, Plus, Package, ArrowUpDown, LayoutGrid, List, SlidersHorizontal, AlertCircle, CheckCircle2 } from 'lucide-react';
+import { formatEur } from '../services/format';
+import { Search, Package, MoreHorizontal, Check, Edit2, Trash2, ArrowUpDown } from 'lucide-react';
 
 interface InventoryTabProps {
   items: Item[];
@@ -9,6 +10,7 @@ interface InventoryTabProps {
   onOpenSaleModal: (item: Item) => void;
   onNavigateAdd: () => void;
   onUpdatePurchasePrice: (itemId: string, newPrice: number | null) => void;
+  onDeleteItem?: (itemId: string) => Promise<void> | void;
 }
 
 type SortOption = 'newest' | 'brand_asc' | 'price_desc' | 'price_asc' | 'margin_desc' | 'unpriced_first';
@@ -19,17 +21,35 @@ export const InventoryTab: React.FC<InventoryTabProps> = ({
   vintedCatalog,
   onOpenSaleModal,
   onNavigateAdd,
-  onUpdatePurchasePrice
+  onUpdatePurchasePrice,
+  onDeleteItem
 }) => {
   const [search, setSearch] = useState('');
   const [selectedCategory, setSelectedCategory] = useState('ALL');
   const [sortBy, setSortBy] = useState<SortOption>('newest');
   const [statusFilter, setStatusFilter] = useState<FilterStatus>('all');
-  const [viewMode, setViewMode] = useState<'cards' | 'table'>('cards');
+  const [activeMenuId, setActiveMenuId] = useState<string | null>(null);
+
+  const menuRef = useRef<HTMLDivElement>(null);
+
+  // Close dropdown on click outside
+  useEffect(() => {
+    const handleClickOutside = (e: MouseEvent) => {
+      if (menuRef.current && !menuRef.current.contains(e.target as Node)) {
+        setActiveMenuId(null);
+      }
+    };
+    if (activeMenuId) {
+      document.addEventListener('mousedown', handleClickOutside);
+    }
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, [activeMenuId]);
 
   const categories = useMemo(() => ['ALL', ...Array.from(new Set(items.map(i => i.category)))], [items]);
 
-  // Counts for filter pills: only items where isCostSet is false need costs
+  // Counts for filter pills
   const unpricedCount = useMemo(() => items.filter(i => !isCostSet(i.purchasePrice)).length, [items]);
   const matchedCount = useMemo(() => items.filter(i => smartMatch(i, vintedCatalog).matched).length, [items, vintedCatalog]);
   const notMatchedCount = items.length - matchedCount;
@@ -37,16 +57,13 @@ export const InventoryTab: React.FC<InventoryTabProps> = ({
   // Filter & Sort items
   const processedItems = useMemo(() => {
     let result = items.filter(item => {
-      // 1. Search filter
       const matchesSearch =
         item.brand.toLowerCase().includes(search.toLowerCase()) ||
         item.title.toLowerCase().includes(search.toLowerCase()) ||
         item.id.toLowerCase().includes(search.toLowerCase());
 
-      // 2. Category filter
       const matchesCat = selectedCategory === 'ALL' || item.category === selectedCategory;
 
-      // 3. Status filter
       let matchesStatus = true;
       if (statusFilter === 'unpriced') {
         matchesStatus = !isCostSet(item.purchasePrice);
@@ -59,7 +76,6 @@ export const InventoryTab: React.FC<InventoryTabProps> = ({
       return matchesSearch && matchesCat && matchesStatus;
     });
 
-    // Sort logic
     result.sort((a, b) => {
       const aSet = isCostSet(a.purchasePrice);
       const bSet = isCostSet(b.purchasePrice);
@@ -93,455 +109,302 @@ export const InventoryTab: React.FC<InventoryTabProps> = ({
   }, [items, search, selectedCategory, statusFilter, sortBy, vintedCatalog]);
 
   const handlePromptSetPrice = (item: Item) => {
+    setActiveMenuId(null);
     const isSet = isCostSet(item.purchasePrice);
     const initialVal = isSet ? String(item.purchasePrice) : "";
     const p = prompt(
-      `Enter purchase cost for "${item.brand} - ${item.title}" (€):\n• Enter 0 if free / personal wardrobe (gratuit)\n• Enter cost price in €\n• Leave blank to unset (needs cost)`,
+      `Coût d'achat pour "${item.brand} - ${item.title}" (€) :\n• Saisissez 0 si gratuit (dressing personnel)\n• Saisissez le prix en €\n• Laissez vide pour indiquer un coût à définir`,
       initialVal
     );
-    if (p === null) return; // Cancelled
 
+    if (p === null) return;
     const trimmed = p.trim();
-    if (trimmed === '') {
+
+    if (trimmed === "") {
       onUpdatePurchasePrice(item.id, null);
     } else {
-      const val = parseFloat(trimmed);
-      if (!isNaN(val) && val >= 0) {
-        onUpdatePurchasePrice(item.id, val);
+      const parsed = parseFloat(trimmed);
+      if (!isNaN(parsed) && parsed >= 0) {
+        onUpdatePurchasePrice(item.id, parsed);
+      } else {
+        alert("Montant invalide. Veuillez entrer un nombre valide ou laisser vide.");
       }
+    }
+  };
+
+  const handleDelete = async (item: Item) => {
+    setActiveMenuId(null);
+    if (!onDeleteItem) return;
+    const confirmDelete = window.confirm(
+      `Supprimer définitivement "${item.brand} - ${item.title}" du stock ?`
+    );
+    if (confirmDelete) {
+      await onDeleteItem(item.id);
     }
   };
 
   return (
     <div className="space-y-5 animate-fade-in">
       
-      {/* 1. Header Bar */}
-      <div className="bg-surface border border-border rounded-md p-5 shadow-sm flex flex-wrap justify-between items-center gap-4">
-        <div>
-          <div className="flex items-center gap-2.5">
-            <h2 className="font-heading text-xl font-bold text-primary">Active Inventory</h2>
-            <span className="font-mono text-xs px-2 py-0.5 bg-surface-subtle border border-border text-secondary rounded-sm font-semibold">
-              {processedItems.length} of {items.length} items
-            </span>
-          </div>
-          <p className="text-xs text-secondary mt-0.5">
-            Individual piece accounting and real-time Vinted matching.
-          </p>
-        </div>
-
-        <div className="flex items-center gap-2">
-          {/* View Mode Toggle */}
-          <div className="hidden sm:flex items-center border border-border rounded-sm overflow-hidden bg-surface-subtle p-0.5">
-            <button
-              onClick={() => setViewMode('cards')}
-              className={`p-1.5 rounded-xs transition-all ${
-                viewMode === 'cards' ? 'bg-surface text-accent shadow-xs' : 'text-secondary hover:text-primary'
-              }`}
-              title="Cards view"
-            >
-              <LayoutGrid size={15} />
-            </button>
-            <button
-              onClick={() => setViewMode('table')}
-              className={`p-1.5 rounded-xs transition-all ${
-                viewMode === 'table' ? 'bg-surface text-accent shadow-xs' : 'text-secondary hover:text-primary'
-              }`}
-              title="Table view"
-            >
-              <List size={15} />
-            </button>
-          </div>
-
-          <button
-            onClick={onNavigateAdd}
-            className="flex items-center gap-1.5 px-3.5 py-2 text-xs font-bold uppercase tracking-wider bg-primary text-canvas rounded-sm hover:opacity-90 shadow-sm transition-all"
-          >
-            <Plus size={14} />
-            <span>Add Purchase</span>
-          </button>
-        </div>
-      </div>
-
-      {/* 2. Search, Filter & Sort Controls */}
-      <div className="bg-surface border border-border rounded-md p-4 shadow-sm space-y-3">
-        <div className="grid grid-cols-1 sm:grid-cols-12 gap-3">
-          
-          {/* Search bar */}
-          <div className="relative sm:col-span-6">
-            <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-tertiary" />
+      {/* 1. Header Toolbar: Search, Category, Sort, and Filter Pills */}
+      <div className="p-4 sm:p-5 card-glossy space-y-3.5">
+        
+        {/* Top Controls Row */}
+        <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2.5">
+          {/* Search */}
+          <div className="relative flex-1">
+            <Search size={14} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-tertiary" />
             <input
               type="text"
-              placeholder="Search by brand, item title, or #ref..."
+              placeholder="Rechercher par marque, pièce ou référence..."
               value={search}
               onChange={e => setSearch(e.target.value)}
-              className="w-full pl-9 pr-3 py-2 text-xs bg-surface-subtle border border-border-strong rounded-sm outline-none focus:border-accent"
+              className="w-full pl-9 pr-3.5 py-2 text-xs bg-white/[0.03] border border-[rgba(255,190,220,0.12)] rounded-full text-primary placeholder:text-tertiary outline-none focus:border-accent-light transition-all"
             />
           </div>
 
-          {/* Category Dropdown */}
-          <div className="sm:col-span-3">
+          <div className="flex items-center gap-2">
+            {/* Category */}
             <select
               value={selectedCategory}
               onChange={e => setSelectedCategory(e.target.value)}
-              className="w-full py-2 px-3 text-xs bg-surface-subtle border border-border-strong rounded-sm outline-none focus:border-accent"
+              className="flex-1 sm:flex-initial py-2 px-3 text-xs bg-white/[0.03] border border-[rgba(255,190,220,0.12)] rounded-full text-primary outline-none focus:border-accent-light cursor-pointer"
             >
-              {categories.map(cat => (
-                <option key={cat} value={cat}>
-                  {cat === 'ALL' ? 'All Categories' : cat}
-                </option>
+              <option value="ALL" className="bg-[#17111A]">Toutes catégories</option>
+              {categories.filter(c => c !== 'ALL').map(cat => (
+                <option key={cat} value={cat} className="bg-[#17111A]">{cat}</option>
               ))}
             </select>
-          </div>
 
-          {/* Sort Dropdown */}
-          <div className="sm:col-span-3">
-            <div className="relative">
+            {/* Sort */}
+            <div className="relative flex-1 sm:flex-initial">
               <select
                 value={sortBy}
                 onChange={e => setSortBy(e.target.value as SortOption)}
-                className="w-full py-2 pl-3 pr-8 text-xs bg-surface-subtle border border-border-strong rounded-sm outline-none focus:border-accent appearance-none font-medium"
+                className="w-full py-2 pl-3 pr-7 text-xs bg-white/[0.03] border border-[rgba(255,190,220,0.12)] rounded-full text-primary outline-none focus:border-accent-light cursor-pointer appearance-none"
               >
-                <option value="newest">Sort: Newest First</option>
-                <option value="brand_asc">Sort: Brand (A - Z)</option>
-                <option value="price_desc">Sort: Price (High - Low)</option>
-                <option value="price_asc">Sort: Price (Low - High)</option>
-                <option value="margin_desc">Sort: Margin (High - Low)</option>
-                <option value="unpriced_first">Sort: 0 € Cost First</option>
+                <option value="newest" className="bg-[#17111A]">Plus récents</option>
+                <option value="brand_asc" className="bg-[#17111A]">Marque (A - Z)</option>
+                <option value="price_desc" className="bg-[#17111A]">Prix cible décroissant</option>
+                <option value="price_asc" className="bg-[#17111A]">Prix cible croissant</option>
+                <option value="margin_desc" className="bg-[#17111A]">Marge décroissante</option>
+                <option value="unpriced_first" className="bg-[#17111A]">Coût à définir en premier</option>
               </select>
-              <ArrowUpDown size={12} className="absolute right-3 top-1/2 -translate-y-1/2 text-tertiary pointer-events-none" />
+              <ArrowUpDown size={12} className="absolute right-2.5 top-1/2 -translate-y-1/2 text-tertiary pointer-events-none" />
             </div>
           </div>
         </div>
 
-        {/* Quick Filter Chips */}
-        <div className="flex flex-wrap items-center gap-2 pt-2 border-t border-border">
-          <span className="text-[11px] font-mono text-tertiary uppercase mr-1">Filter:</span>
-          
+        {/* Filter Pills */}
+        <div className="flex flex-wrap items-center gap-1.5 pt-2 border-t border-[rgba(255,190,220,0.07)] text-xs">
           <button
             onClick={() => setStatusFilter('all')}
-            className={`px-2.5 py-1 text-xs rounded-sm transition-all font-medium ${
+            className={`px-3 py-1 rounded-full transition-all cursor-pointer font-medium ${
               statusFilter === 'all'
-                ? 'bg-primary text-canvas font-bold'
-                : 'bg-surface-subtle border border-border text-secondary hover:text-primary'
+                ? 'bg-[rgba(255,143,192,0.18)] text-accent-pale shadow-xs'
+                : 'text-secondary hover:text-primary hover:bg-white/[0.04]'
             }`}
           >
-            All ({items.length})
+            Tous ({items.length})
           </button>
 
           <button
             onClick={() => setStatusFilter('unpriced')}
-            className={`px-2.5 py-1 text-xs rounded-sm transition-all font-medium flex items-center gap-1.5 ${
+            className={`px-3 py-1 rounded-full transition-all cursor-pointer font-medium flex items-center gap-1.5 ${
               statusFilter === 'unpriced'
-                ? 'bg-warning text-canvas font-bold'
-                : 'bg-surface-subtle border border-border text-secondary hover:border-warning'
+                ? 'bg-[rgba(255,138,128,0.18)] text-corail shadow-xs'
+                : 'text-secondary hover:text-corail hover:bg-white/[0.04]'
             }`}
           >
-            <span className="w-1.5 h-1.5 rounded-full bg-warning"></span>
-            <span>Needs Cost Price ({unpricedCount})</span>
+            <span className="w-1.5 h-1.5 rounded-full bg-corail shrink-0" />
+            <span>Coût manquant ({unpricedCount})</span>
           </button>
 
           <button
             onClick={() => setStatusFilter('vinted_matched')}
-            className={`px-2.5 py-1 text-xs rounded-sm transition-all font-medium flex items-center gap-1.5 ${
+            className={`px-3 py-1 rounded-full transition-all cursor-pointer font-medium flex items-center gap-1.5 ${
               statusFilter === 'vinted_matched'
-                ? 'bg-profit text-canvas font-bold'
-                : 'bg-surface-subtle border border-border text-secondary hover:border-profit'
+                ? 'bg-[rgba(127,227,181,0.18)] text-menthe shadow-xs'
+                : 'text-secondary hover:text-menthe hover:bg-white/[0.04]'
             }`}
           >
-            <span className="w-1.5 h-1.5 rounded-full bg-profit"></span>
-            <span>Listed on Vinted ({matchedCount})</span>
+            <span className="w-1.5 h-1.5 rounded-full bg-menthe shrink-0" />
+            <span>Sur Vinted ({matchedCount})</span>
           </button>
 
           <button
             onClick={() => setStatusFilter('not_on_vinted')}
-            className={`px-2.5 py-1 text-xs rounded-sm transition-all font-medium flex items-center gap-1.5 ${
+            className={`px-3 py-1 rounded-full transition-all cursor-pointer font-medium ${
               statusFilter === 'not_on_vinted'
-                ? 'bg-surface-elevated text-primary border border-border-strong font-bold'
-                : 'bg-surface-subtle border border-border text-secondary hover:text-primary'
+                ? 'bg-white/[0.10] text-primary shadow-xs'
+                : 'text-secondary hover:text-primary hover:bg-white/[0.04]'
             }`}
           >
-            <span>Not on Vinted ({notMatchedCount})</span>
+            Hors Vinted ({notMatchedCount})
           </button>
         </div>
+
       </div>
 
-      {/* 3. Empty State or Products Content */}
+      {/* 2. Cards Grid (2 colonnes sur mobile, 3 à 4 sur grand écran) */}
       {items.length === 0 ? (
-        <div className="bg-surface border border-border rounded-md py-16 px-6 text-center shadow-sm">
-          <Package size={44} className="mx-auto mb-3 text-secondary opacity-50" />
-          <h3 className="font-heading text-lg font-bold text-primary mb-1">
-            Your inventory is empty
-          </h3>
-          <p className="text-xs text-secondary max-w-sm mx-auto mb-6">
-            No items in stock. Record your first purchase with photo or import your verified Vinted wardrobe.
+        <div className="p-10 card-glossy text-center">
+          <Package size={40} className="mx-auto mb-2 text-secondary opacity-40" />
+          <h2 className="text-base font-semibold text-primary mb-1">
+            Votre stock est vide
+          </h2>
+          <p className="text-xs text-secondary max-w-sm mx-auto mb-4">
+            Enregistrez votre premier achat ou synchronisez votre dressing Vinted.
           </p>
           <button
             onClick={onNavigateAdd}
-            className="px-5 py-2.5 text-xs font-bold uppercase tracking-wider bg-accent text-white rounded-sm hover:brightness-110 shadow-sm transition-all"
+            className="px-4 py-2 text-xs font-semibold rounded-full btn-primary-pink inline-flex items-center gap-1.5"
           >
-            + Record an Item
+            + Enregistrer une pièce
           </button>
         </div>
       ) : processedItems.length === 0 ? (
-        <div className="bg-surface border border-border rounded-md py-12 px-6 text-center text-xs text-secondary shadow-sm">
-          No items match your active search or filters.
+        <div className="p-8 card-glossy text-center text-xs text-secondary">
+          Aucune pièce ne correspond à votre recherche ou filtre.
         </div>
-      ) : viewMode === 'cards' ? (
-        
-        /* 4. CARDS GRID VIEW (Responsive: 1 col mobile, 2 col tablet, 3-4 col desktop) */
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 sm:gap-5">
+      ) : (
+        <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3 sm:gap-4">
           {processedItems.map(item => {
             const costSet = isCostSet(item.purchasePrice);
             const cost = costSet ? Number(item.purchasePrice) : null;
             const target = Number(item.targetPrice) || (costSet ? cost! * 2.5 : 0);
-            const potentialMargin = costSet ? target - cost! : null;
+            const margin = costSet ? target - cost! : null;
             const match = smartMatch(item, vintedCatalog);
+            const isMenuOpen = activeMenuId === item.id;
 
             return (
               <div
                 key={item.id}
-                className="bg-surface border border-border hover:border-accent/60 rounded-md overflow-hidden shadow-sm hover:shadow-md transition-all flex flex-col group"
+                className="card-glossy overflow-hidden flex flex-col justify-between group relative"
               >
-                {/* Photo & Overlay Badges */}
-                <div className="relative aspect-[4/3] bg-surface-subtle overflow-hidden border-b border-border">
+                {/* Photo 4:5 avec badges discrets sans texte flou */}
+                <div className="relative aspect-[4/5] bg-black/40 overflow-hidden">
                   {item.photo ? (
                     <img
                       src={item.photo}
                       alt={item.title}
-                      className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                      className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
                       loading="lazy"
                     />
                   ) : (
                     <div className="w-full h-full flex flex-col items-center justify-center text-secondary">
-                      <Package size={32} className="opacity-30 mb-1" />
-                      <span className="text-[10px] font-mono uppercase tracking-wider">No photo</span>
+                      <Package size={28} className="opacity-30 mb-1" />
+                      <span className="text-[10px] text-tertiary">Pas de photo</span>
                     </div>
                   )}
 
-                  {/* Top-left Ref Pill */}
-                  <span className="absolute top-2.5 left-2.5 font-mono text-[10px] font-semibold bg-canvas/90 backdrop-blur-md text-primary px-2 py-0.5 rounded-sm border border-border shadow-xs">
+                  {/* Badge Référence haut gauche (monospace) */}
+                  <span className="absolute top-2 left-2 text-[10px] font-mono px-1.5 py-0.5 rounded-sm bg-black/75 backdrop-blur-md text-secondary border border-white/10">
                     #{item.id}
                   </span>
 
-                  {/* Top-right Size Pill */}
+                  {/* Badge Taille haut droite */}
                   {item.size && (
-                    <span className="absolute top-2.5 right-2.5 font-mono text-[11px] font-bold bg-surface/95 backdrop-blur-md text-primary px-2 py-0.5 rounded-sm border border-border shadow-xs">
+                    <span className="absolute top-2 right-2 text-[10px] font-medium px-1.5 py-0.5 rounded-sm bg-black/75 backdrop-blur-md text-primary border border-white/10">
                       {item.size}
                     </span>
                   )}
 
-                  {/* Bottom Vinted Match Banner over photo */}
-                  <div className="absolute bottom-2 left-2 right-2">
+                  {/* Badge Statut Vinted bas de photo */}
+                  <div className="absolute bottom-2 left-2 right-2 flex items-center justify-between pointer-events-none">
                     {match.matched ? (
-                      <span className="inline-flex items-center gap-1.5 text-[10px] font-semibold text-profit bg-canvas/95 backdrop-blur-md border border-profit/30 px-2 py-1 rounded-sm shadow-sm w-full">
-                        <span className="w-1.5 h-1.5 rounded-full bg-profit shrink-0"></span>
-                        <span className="truncate">Listed on Vinted · {match.vintedItem?.price} €</span>
+                      <span className="inline-flex items-center gap-1 text-[10px] font-medium px-2 py-0.5 rounded-full bg-black/80 backdrop-blur-md text-menthe border border-menthe/30 shadow-xs truncate">
+                        <span className="w-1.5 h-1.5 rounded-full bg-menthe shrink-0" />
+                        <span className="truncate">En ligne ({formatEur(match.vintedItem?.price)})</span>
                       </span>
                     ) : (
-                      <span className="inline-flex items-center gap-1.5 text-[10px] font-semibold text-warning bg-canvas/95 backdrop-blur-md border border-warning/30 px-2 py-1 rounded-sm shadow-sm w-full">
-                        <span className="w-1.5 h-1.5 rounded-full bg-warning shrink-0"></span>
-                        <span>Not on Vinted</span>
+                      <span className="inline-flex items-center gap-1 text-[10px] text-secondary px-2 py-0.5 rounded-full bg-black/80 backdrop-blur-md border border-white/10 shadow-xs">
+                        Hors Vinted
                       </span>
                     )}
                   </div>
                 </div>
 
                 {/* Card Body */}
-                <div className="p-4 flex-1 flex flex-col justify-between">
+                <div className="p-3 sm:p-3.5 flex-1 flex flex-col justify-between">
                   <div>
-                    <div className="flex items-baseline justify-between gap-2 mb-1">
-                      <h3 className="font-heading font-bold text-base text-primary tracking-tight truncate">
-                        {item.brand}
-                      </h3>
-                      <span className="text-[10px] font-mono uppercase text-tertiary shrink-0">
-                        {item.category}
-                      </span>
-                    </div>
+                    {/* Marque (600) */}
+                    <h2 className="text-xs sm:text-sm font-semibold text-primary truncate">
+                      {item.brand}
+                    </h2>
 
-                    <p className="text-xs text-secondary line-clamp-2 leading-relaxed mb-3.5">
+                    {/* Titre (secondaire, 2 lignes max) */}
+                    <p className="text-[11px] sm:text-xs text-secondary line-clamp-2 leading-snug mt-0.5">
                       {item.title}
                     </p>
 
-                    {/* Financial Block (Clean 3-column pill) */}
-                    <div className="grid grid-cols-3 gap-1.5 p-2 bg-surface-subtle border border-border rounded-sm mb-4 text-center">
-                      <div>
-                        <div className="text-[10px] uppercase font-mono tracking-wider text-tertiary">Cost</div>
-                        {costSet ? (
-                          <div className="font-mono text-xs font-bold text-primary flex items-center justify-center gap-1">
-                            <span>{cost} €</span>
-                            {cost === 0 && (
-                              <span className="text-[9px] text-profit font-semibold uppercase tracking-wider">(Gratuit)</span>
-                            )}
-                          </div>
-                        ) : (
-                          <button
-                            onClick={() => handlePromptSetPrice(item)}
-                            className="text-[10px] font-bold text-warning underline block mx-auto hover:text-primary whitespace-nowrap"
-                          >
-                            Set cost
-                          </button>
-                        )}
-                      </div>
-
-                      <div className="border-x border-border">
-                        <div className="text-[10px] uppercase font-mono tracking-wider text-tertiary">Target</div>
-                        <div className="font-mono text-xs font-semibold text-secondary">
-                          {target || '-'} €
-                        </div>
-                      </div>
-
-                      <div>
-                        <div className="text-[10px] uppercase font-mono tracking-wider text-tertiary">Margin</div>
-                        {potentialMargin !== null ? (
-                          <div className="font-mono text-xs font-bold text-profit">
-                            +{potentialMargin} €
-                          </div>
-                        ) : (
-                          <div className="font-mono text-[10px] text-tertiary italic">-</div>
-                        )}
-                      </div>
+                    {/* Ligne Cible · Marge en menthe */}
+                    <div className="text-[11px] sm:text-xs text-secondary mt-2 flex items-center gap-1.5 flex-wrap">
+                      <span>Cible {formatEur(target)}</span>
+                      <span>·</span>
+                      {margin !== null ? (
+                        <span className="text-menthe font-medium">
+                          marge {formatEur(margin, true)}
+                        </span>
+                      ) : (
+                        <span className="text-corail font-medium">
+                          coût manquant
+                        </span>
+                      )}
                     </div>
                   </div>
 
-                  {/* Actions Bar */}
-                  <div className="flex items-center gap-2 pt-2 border-t border-border">
-                    {costSet ? (
-                      <button
-                        onClick={() => handlePromptSetPrice(item)}
-                        className="flex-1 py-2 text-xs font-semibold bg-surface border border-border-strong hover:border-accent text-secondary hover:text-primary rounded-sm transition-all"
-                      >
-                        Edit Cost ({cost} €)
-                      </button>
-                    ) : (
-                      <button
-                        onClick={() => handlePromptSetPrice(item)}
-                        className="flex-1 py-2 text-xs font-bold bg-warning-soft border border-warning/30 hover:border-warning text-warning hover:text-primary rounded-sm transition-all"
-                      >
-                        Set Cost
-                      </button>
-                    )}
-
+                  {/* Actions Row : Bouton "Vendu" + Menu "⋯" */}
+                  <div className="mt-3 pt-2.5 border-t border-[rgba(255,190,220,0.07)] flex items-center gap-1.5 relative">
                     <button
                       onClick={() => onOpenSaleModal(item)}
-                      className="flex-1 py-2 text-xs font-bold uppercase tracking-wider bg-accent text-white hover:brightness-110 rounded-sm shadow-sm transition-all"
+                      className="flex-1 py-1.5 px-3 text-xs rounded-full bg-white/[0.04] border border-[rgba(255,143,192,0.30)] text-accent-pale hover:bg-[rgba(255,143,192,0.14)] active:scale-95 transition-all font-medium text-center"
                     >
-                      Sell
+                      Vendu
                     </button>
+
+                    {/* Menu "⋯" */}
+                    <div className="relative">
+                      <button
+                        onClick={() => setActiveMenuId(isMenuOpen ? null : item.id)}
+                        className="w-8 h-8 rounded-full flex items-center justify-center text-secondary hover:text-primary hover:bg-white/[0.06] transition-all"
+                        aria-label="Plus d'actions"
+                      >
+                        <MoreHorizontal size={15} />
+                      </button>
+
+                      {isMenuOpen && (
+                        <div
+                          ref={menuRef}
+                          className="absolute right-0 bottom-full mb-1 z-30 w-44 rounded-xl bg-[#17111A] border border-[rgba(255,190,220,0.14)] shadow-xl p-1 text-xs space-y-0.5 animate-fade-in"
+                        >
+                          <button
+                            onClick={() => handlePromptSetPrice(item)}
+                            className="w-full px-2.5 py-1.5 rounded-md flex items-center gap-2 text-left text-secondary hover:text-primary hover:bg-white/[0.06] transition-colors"
+                          >
+                            <Edit2 size={13} className="text-accent" />
+                            <span>{costSet ? `Modifier coût (${formatEur(cost)})` : 'Définir le coût'}</span>
+                          </button>
+
+                          {onDeleteItem && (
+                            <button
+                              onClick={() => handleDelete(item)}
+                              className="w-full px-2.5 py-1.5 rounded-md flex items-center gap-2 text-left text-corail hover:bg-corail/10 transition-colors"
+                            >
+                              <Trash2 size={13} />
+                              <span>Supprimer</span>
+                            </button>
+                          )}
+                        </div>
+                      )}
+                    </div>
+
                   </div>
+
                 </div>
               </div>
             );
           })}
-        </div>
-      ) : (
-
-        /* 5. ALTERNATIVE DENSE TABLE VIEW (For wide desktop screens) */
-        <div className="bg-surface border border-border rounded-md overflow-hidden shadow-sm">
-          <div className="overflow-x-auto">
-            <table className="w-full text-left border-collapse">
-              <thead>
-                <tr className="border-b border-border-strong bg-surface-subtle text-[11px] font-semibold uppercase tracking-wider text-secondary">
-                  <th className="py-2.5 px-3 w-14">Photo</th>
-                  <th className="py-2.5 px-3">Ref.</th>
-                  <th className="py-2.5 px-3">Item & Brand</th>
-                  <th className="py-2.5 px-3">Size</th>
-                  <th className="py-2.5 px-3">Cost Price</th>
-                  <th className="py-2.5 px-3">Target Price</th>
-                  <th className="py-2.5 px-3">Est. Margin</th>
-                  <th className="py-2.5 px-3">Vinted Status</th>
-                  <th className="py-2.5 px-3 text-right">Action</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-border">
-                {processedItems.map(item => {
-                  const costSet = isCostSet(item.purchasePrice);
-                  const cost = costSet ? Number(item.purchasePrice) : null;
-                  const target = Number(item.targetPrice) || (costSet ? cost! * 2.5 : 0);
-                  const potentialMargin = costSet ? target - cost! : null;
-                  const match = smartMatch(item, vintedCatalog);
-
-                  return (
-                    <tr key={item.id} className="hover:bg-surface-subtle transition-colors">
-                      <td className="py-3 px-3">
-                        {item.photo ? (
-                          <img
-                            src={item.photo}
-                            alt={item.title}
-                            className="w-11 h-11 object-cover rounded-sm border border-border"
-                          />
-                        ) : (
-                          <div className="w-11 h-11 rounded-sm bg-surface-subtle border border-dashed border-border flex items-center justify-center text-secondary">
-                            <Package size={16} />
-                          </div>
-                        )}
-                      </td>
-                      <td className="py-3 px-3 font-mono text-xs text-tertiary">
-                        {item.id}
-                      </td>
-                      <td className="py-3 px-3">
-                        <div className="font-heading font-bold text-sm text-primary">{item.brand}</div>
-                        <div className="text-xs text-secondary">{item.title} · {item.category}</div>
-                      </td>
-                      <td className="py-3 px-3 font-mono text-xs font-medium">
-                        {item.size}
-                      </td>
-                      <td className="py-3 px-3">
-                        {costSet ? (
-                          <div className="flex items-center gap-1.5">
-                            <span className="font-mono text-xs font-bold text-primary">{cost} €</span>
-                            <button
-                              onClick={() => handlePromptSetPrice(item)}
-                              className="text-[10px] text-tertiary hover:text-accent hover:underline"
-                            >
-                              edit
-                            </button>
-                          </div>
-                        ) : (
-                          <button
-                            onClick={() => handlePromptSetPrice(item)}
-                            className="inline-flex items-center gap-1 text-[11px] font-semibold text-warning bg-warning-soft border border-warning/30 px-2 py-0.5 rounded-sm hover:brightness-95 transition-all"
-                          >
-                            Set cost price
-                          </button>
-                        )}
-                      </td>
-                      <td className="py-3 px-3 font-mono text-xs text-secondary">
-                        {target || '-'} €
-                      </td>
-                      <td className="py-3 px-3 font-mono text-xs font-bold">
-                        {potentialMargin !== null ? (
-                          <span className="text-profit">+{potentialMargin} €</span>
-                        ) : (
-                          <span className="text-tertiary text-[11px] italic font-normal">Cost needed</span>
-                        )}
-                      </td>
-                      <td className="py-3 px-3">
-                        {match.matched ? (
-                          <span className="inline-flex items-center gap-1.5 text-[11px] font-semibold text-profit bg-profit-soft border border-profit/25 px-2 py-0.5 rounded-sm whitespace-nowrap">
-                            <span className="w-1.5 h-1.5 rounded-full bg-profit"></span>
-                            <span>Listed on Vinted ({match.vintedItem?.price} €)</span>
-                          </span>
-                        ) : (
-                          <span className="inline-flex items-center gap-1.5 text-[11px] font-semibold text-warning bg-warning-soft border border-warning/30 px-2 py-0.5 rounded-sm whitespace-nowrap">
-                            <span className="w-1.5 h-1.5 rounded-full bg-warning"></span>
-                            <span>Not on Vinted</span>
-                          </span>
-                        )}
-                      </td>
-                      <td className="py-3 px-3 text-right">
-                        <button
-                          onClick={() => onOpenSaleModal(item)}
-                          className="px-2.5 py-1 text-xs font-semibold bg-accent text-white rounded-sm hover:brightness-110 transition-all"
-                        >
-                          Sell
-                        </button>
-                      </td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
-          </div>
         </div>
       )}
 
