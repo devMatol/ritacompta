@@ -327,6 +327,13 @@ export const App: React.FC = () => {
     setActiveTab('dashboard');
   };
 
+  const handleDeleteItem = async (itemId: string) => {
+    await db.items.delete(itemId);
+    if (getSupabaseConfig().isConfigured) {
+      await cloudDeleteItem(itemId);
+    }
+  };
+
   const handleBulkImportAll = async () => {
     // Only import pieces that are NOT already in stock and NOT in sales
     const missingVinted = vintedCatalog.filter(v => !isVintedItemImported(v, items, sales));
@@ -527,6 +534,7 @@ export const App: React.FC = () => {
               onBulkImportAll={handleBulkImportAll}
               onQuickAddVintedToCompta={handleQuickAddVintedToCompta}
               onOpenSaleModal={handleOpenSaleModal}
+              onDeleteItem={handleDeleteItem}
             />
           )}
           {activeTab === 'add' && (
