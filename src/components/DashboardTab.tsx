@@ -291,36 +291,36 @@ export const DashboardTab: React.FC<DashboardTabProps> = ({
         </div>
       )}
 
-      {/* 3. 4 Chiffres clés (grille responsive : 2 cols mobile avec bénéfice net en pleine largeur, auto-fit desktop) */}
+      {/* 3. 4 Chiffres clés (grille responsive : 2 cols mobile avec CA en pleine largeur, auto-fit desktop) */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3.5 sm:gap-4">
         
-        {/* 3.1 Bénéfice net (après cotisations) - Carte mise en avant rose glossy */}
+        {/* 3.1 Chiffre d'affaires (CA) - Carte mise en avant rose glossy */}
         <div className="col-span-2 md:col-span-1 p-4 sm:p-5 card-hero-pink flex flex-col justify-between min-h-[120px] sm:min-h-[140px]">
           <div>
             <div className="text-xs text-[#2B0717]/80 font-medium">
-              Bénéfice net
-            </div>
-            <div className="text-[28px] sm:text-[34px] font-bold text-[#2B0717] tracking-tight leading-none mt-1.5 font-sans">
-              {formatEur(netProfitAfterTax, true)}
-            </div>
-          </div>
-          <div className="text-[11px] sm:text-xs text-[#2B0717]/75 font-medium mt-2">
-            Net d'impôts et cotisations ({taxRate}%)
-          </div>
-        </div>
-
-        {/* 3.2 Chiffre d'affaires */}
-        <div className="col-span-1 p-4 sm:p-5 card-glossy flex flex-col justify-between min-h-[120px] sm:min-h-[140px]">
-          <div>
-            <div className="text-xs text-secondary font-normal">
               Chiffre d'affaires
             </div>
-            <div className="text-xl sm:text-2xl font-bold text-primary tracking-tight mt-1.5 font-sans">
+            <div className="text-[28px] sm:text-[34px] font-bold text-[#2B0717] tracking-tight leading-none mt-1.5 font-sans">
               {formatEur(totalTurnover)}
             </div>
           </div>
-          <div className="text-[11px] sm:text-xs text-menthe font-medium mt-2 truncate">
-            {formatEur(netMargin, true)} marge brute
+          <div className="text-[11px] sm:text-xs text-[#2B0717]/80 font-medium mt-2">
+            {formatEur(netMargin, true)} de marge brute
+          </div>
+        </div>
+
+        {/* 3.2 Bénéfice net (après cotisations) */}
+        <div className="col-span-1 p-4 sm:p-5 card-glossy flex flex-col justify-between min-h-[120px] sm:min-h-[140px]">
+          <div>
+            <div className="text-xs text-secondary font-normal">
+              Bénéfice net
+            </div>
+            <div className="text-xl sm:text-2xl font-bold text-menthe tracking-tight mt-1.5 font-sans">
+              {formatEur(netProfitAfterTax, true)}
+            </div>
+          </div>
+          <div className="text-[11px] sm:text-xs text-secondary mt-2 truncate">
+            Net de cotisations ({taxRate}%)
           </div>
         </div>
 
