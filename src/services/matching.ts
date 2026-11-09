@@ -39,14 +39,27 @@ const STOP_WORDS = new Set(['vintage', 'dressing', 'style', 'with', 'avec', 'the
 
 /**
  * Robust, deterministic match between an internal item and a live Vinted item.
+ * 0. Deterministic Vinted ID match (if present)
  * 1. Photo hash match (exact, 100% reliable)
  * 2. Exact clean title match
  * 3. High-precision clean title overlap (>= 80% significant words) with brand verification
  */
 export function isSameVintedItem(
-  stockItem: { title: string; brand?: string; photo?: string },
-  vntItem: { title: string; brand?: string; photo?: string }
+  stockItem: { id?: string; title: string; brand?: string; photo?: string; vintedId?: string },
+  vntItem: { id?: string; title: string; brand?: string; photo?: string; vintedId?: string }
 ): boolean {
+  // 0. Deterministic Vinted ID match
+  const sVintedId = stockItem.vintedId || (stockItem.id && /^\d{8,}$/.test(stockItem.id) ? stockItem.id : undefined);
+  const vVintedId = vntItem.id || vntItem.vintedId;
+
+  if (sVintedId && vVintedId) {
+    if (String(sVintedId) === String(vVintedId)) {
+      return true;
+    }
+    // If both have explicit Vinted IDs and they are different, they are definitely distinct listings
+    return false;
+  }
+
   // 1. Photo hash exact match
   const stockPhotoHash = extractPhotoHash(stockItem.photo);
   const vntPhotoHash = extractPhotoHash(vntItem.photo);
@@ -58,7 +71,11 @@ export function isSameVintedItem(
   const it = cleanStr(stockItem.title);
   const vt = cleanStr(vntItem.title);
   if (it && vt && it === vt) {
-    return true;
+    const sBrand = cleanStr(stockItem.brand);
+    const vBrand = cleanStr(vntItem.brand);
+    if (!sBrand || !vBrand || sBrand === vBrand || it.includes(vBrand) || vt.includes(sBrand)) {
+      return true;
+    }
   }
 
   // 3. High-precision clean title overlap (>= 80% words) with brand match

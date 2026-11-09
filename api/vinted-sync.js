@@ -5,7 +5,7 @@ const SUPABASE_KEY = process.env.VITE_SUPABASE_ANON_KEY || 'eyJhbGciOiJIUzI1NiIs
 
 const client = createClient(SUPABASE_URL, SUPABASE_KEY);
 
-// In-memory cache to prevent hitting Vinted multiple times within seconds
+// In-memory cache to prevent hammering Vinted within seconds
 let cache = {
   timestamp: 0,
   data: null
@@ -55,54 +55,87 @@ export async function scrapeLiveVinted(userId = '68815764') {
   const cookieHeader = Array.from(cookieMap.entries()).map(([k, v]) => `${k}=${v}`).join('; ');
   const accessToken = cookieMap.get('access_token_web');
 
-  // 3. Fetch all pages of wardrobe with 200ms spacing
+  // 3. Paginated wardrobe fetch with per_page=96 (max supported by Vinted)
+  // This drastically reduces HTTP calls (e.g. 2 requests for 183 items instead of 10)
   let allRawItems = [];
   let page = 1;
-  while (page <= 15) {
-    try {
-      const apiRes = await fetch(`https://www.vinted.fr/api/v2/wardrobe/${userId}/items?page=${page}&per_page=20`, {
-        headers: {
-          'User-Agent': userAgent,
-          'Accept': 'application/json, text/plain, */*',
-          'Accept-Language': 'fr-FR,fr;q=0.9',
-          'Referer': memberUrl,
-          'Cookie': cookieHeader,
-          ...(accessToken ? { 'Authorization': `Bearer ${accessToken}` } : {})
+  let totalPages = 1;
+  let totalEntries = 0;
+  let scrapeComplete = true;
+
+  while (page <= totalPages && page <= 12) {
+    let success = false;
+    let attempts = 0;
+
+    while (!success && attempts < 3) {
+      attempts++;
+      try {
+        const apiRes = await fetch(`https://www.vinted.fr/api/v2/wardrobe/${userId}/items?page=${page}&per_page=96`, {
+          headers: {
+            'User-Agent': userAgent,
+            'Accept': 'application/json, text/plain, */*',
+            'Accept-Language': 'fr-FR,fr;q=0.9',
+            'Referer': memberUrl,
+            'Cookie': cookieHeader,
+            ...(accessToken ? { 'Authorization': `Bearer ${accessToken}` } : {})
+          }
+        });
+
+        if (!apiRes.ok) {
+          console.warn(`Vinted page ${page} attempt ${attempts} HTTP status: ${apiRes.status}`);
+          await new Promise(r => setTimeout(r, 600 * attempts));
+          continue;
         }
-      });
 
-      if (!apiRes.ok) break;
-      const contentType = apiRes.headers.get('content-type') || '';
-      if (!contentType.includes('application/json')) break;
+        const contentType = apiRes.headers.get('content-type') || '';
+        if (!contentType.includes('application/json')) {
+          console.warn(`Vinted page ${page} attempt ${attempts} returned non-JSON`);
+          await new Promise(r => setTimeout(r, 600 * attempts));
+          continue;
+        }
 
-      const data = await apiRes.json();
-      const items = data.items || [];
-      if (items.length === 0) break;
-      allRawItems.push(...items);
-      if (items.length < 20) break;
-      page++;
+        const data = await apiRes.json();
+        const items = data.items || [];
+        if (data.pagination) {
+          totalPages = data.pagination.total_pages || totalPages;
+          totalEntries = data.pagination.total_entries || totalEntries;
+        }
 
-      await new Promise(r => setTimeout(r, 200));
-    } catch (e) {
-      console.warn(`Error on wardrobe page ${page}:`, e);
+        allRawItems.push(...items);
+        success = true;
+      } catch (e) {
+        console.warn(`Error on wardrobe page ${page} (attempt ${attempts}):`, e);
+        await new Promise(r => setTimeout(r, 600 * attempts));
+      }
+    }
+
+    if (!success) {
+      scrapeComplete = false;
+      console.error(`Page ${page} could not be loaded after 3 retries.`);
       break;
     }
+
+    page++;
+    await new Promise(r => setTimeout(r, 200));
   }
 
-  // If live fetch returned nothing, fallback to Supabase table
+  // Fallback to Supabase if live fetch returned nothing at all
   if (allRawItems.length === 0) {
     const { data: dbItems } = await client.from('vinted_catalog').select('*');
     if (dbItems && dbItems.length > 0) {
-      return dbItems.map(d => ({
-        ...d,
-        publishedDate: d.published_date || d.publishedDate || '2026-09-01'
-      }));
+      return {
+        items: dbItems.map(d => ({
+          ...d,
+          publishedDate: d.published_date || d.publishedDate || '2026-09-01'
+        })),
+        isComplete: false
+      };
     }
     throw new Error('No items returned from Vinted API and DB fallback empty');
   }
 
   // 4. Format items
-  return allRawItems.map(i => {
+  const formatted = allRawItems.map(i => {
     let priceNum = 20;
     if (i.price && typeof i.price === 'object') {
       priceNum = parseFloat(i.price.amount) || 20;
@@ -129,6 +162,11 @@ export async function scrapeLiveVinted(userId = '68815764') {
       publishedDate: pubDate
     };
   });
+
+  return {
+    items: formatted,
+    isComplete: scrapeComplete && (totalEntries === 0 || formatted.length >= totalEntries)
+  };
 }
 
 export default async function handler(req, res) {
@@ -156,7 +194,7 @@ export default async function handler(req, res) {
   }
 
   try {
-    const formatted = await scrapeLiveVinted(userId);
+    const { items: formatted, isComplete } = await scrapeLiveVinted(userId);
 
     // Save to cache
     cache = {
@@ -167,14 +205,21 @@ export default async function handler(req, res) {
     // Synchronize Supabase vinted_catalog table
     try {
       const liveIds = new Set(formatted.map(f => f.id));
-      const { data: currentRows } = await client.from('vinted_catalog').select('id');
-      if (currentRows && currentRows.length > 0) {
-        const removedIds = currentRows.filter(r => !liveIds.has(String(r.id))).map(r => r.id);
-        if (removedIds.length > 0) {
-          await client.from('vinted_catalog').delete().in('id', removedIds);
+      
+      // CRITICAL SAFETY CHECK:
+      // Only delete items from Supabase if the scrape was 100% complete.
+      // If the scrape was partial (e.g. network hiccup on page 2), NEVER delete items!
+      if (isComplete) {
+        const { data: currentRows } = await client.from('vinted_catalog').select('id');
+        if (currentRows && currentRows.length > 0) {
+          const removedIds = currentRows.filter(r => !liveIds.has(String(r.id))).map(r => r.id);
+          if (removedIds.length > 0) {
+            await client.from('vinted_catalog').delete().in('id', removedIds);
+          }
         }
       }
 
+      // Upsert fresh items
       const rowsToUpsert = formatted.map(f => ({
         id: f.id,
         title: f.title,
@@ -185,7 +230,12 @@ export default async function handler(req, res) {
         photo: f.photo,
         url: f.url
       }));
-      await client.from('vinted_catalog').upsert(rowsToUpsert);
+      
+      // Upsert in batches of 50 to avoid payload size issues
+      for (let i = 0; i < rowsToUpsert.length; i += 50) {
+        const batch = rowsToUpsert.slice(i, i + 50);
+        await client.from('vinted_catalog').upsert(batch);
+      }
     } catch (dbErr) {
       console.warn('Supabase sync warning in vinted-sync:', dbErr);
     }

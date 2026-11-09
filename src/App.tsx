@@ -175,6 +175,27 @@ export const App: React.FC = () => {
       }
     });
 
+    // Auto-link existing stock items to their Vinted ID if missing
+    Promise.all([db.items.toArray(), db.vintedCatalog.toArray()]).then(([localItems, vntList]) => {
+      if (localItems.length > 0 && vntList.length > 0) {
+        const toLink: Item[] = [];
+        localItems.forEach(item => {
+          if (!item.vintedId) {
+            const matched = vntList.find(v => isSameVintedItem(item, v));
+            if (matched) {
+              toLink.push({ ...item, vintedId: matched.id });
+            }
+          }
+        });
+        if (toLink.length > 0) {
+          db.items.bulkPut(toLink);
+          if (getSupabaseConfig().isConfigured) {
+            cloudBulkAddItems(toLink);
+          }
+        }
+      }
+    });
+
     // Check iOS & standalone
     const ua = window.navigator.userAgent.toLowerCase();
     setIsIos(/iphone|ipad|ipod/.test(ua));
@@ -339,7 +360,7 @@ export const App: React.FC = () => {
     // Only import pieces that are NOT already in stock and NOT in sales
     const missingVinted = vintedCatalog.filter(v => !isVintedItemImported(v, items, sales));
     if (missingVinted.length === 0) {
-      alert("All pieces from this Vinted wardrobe are already imported in your stock or sales archive.");
+      alert("Toutes les pièces de ce dressing Vinted sont déjà importées dans votre stock ou vos ventes.");
       return;
     }
 
@@ -369,18 +390,19 @@ export const App: React.FC = () => {
         photo: vnt.photo,
         purchaseDate: vnt.publishedDate || new Date().toISOString().split('T')[0],
         publishedDate: vnt.publishedDate,
+        vintedId: vnt.id,
         costExplicitlySet: false
       });
       nextNum++;
     }
 
     if (newItems.length > 0) {
-      // bulkAdd guarantees zero overwriting of existing items
-      await db.items.bulkAdd(newItems);
+      // bulkPut guarantees safe import without aborting on collision
+      await db.items.bulkPut(newItems);
       if (getSupabaseConfig().isConfigured) {
         await cloudBulkAddItems(newItems);
       }
-      alert(`Success!\n${newItems.length} new piece(s) imported into active inventory.\nInitial purchase costs are empty (Needs Cost Price).`);
+      alert(`Succès !\n${newItems.length} nouvelle(s) pièce(s) importée(s) dans l'inventaire actif.\nLes coûts d'achat sont à définir.`);
       setActiveTab('inventory');
     }
   };
@@ -400,7 +422,7 @@ export const App: React.FC = () => {
 
   const handleQuickAddVintedToCompta = async (vnt: VintedItem) => {
     if (isVintedItemImported(vnt, items, sales)) {
-      alert(`"${vnt.brand} - ${vnt.title}" is already in your inventory or sold archive.`);
+      alert(`"${vnt.brand} - ${vnt.title}" est déjà dans votre stock ou vos ventes.`);
       return;
     }
 
@@ -426,14 +448,15 @@ export const App: React.FC = () => {
       photo: vnt.photo,
       purchaseDate: vnt.publishedDate || new Date().toISOString().split('T')[0],
       publishedDate: vnt.publishedDate,
+      vintedId: vnt.id,
       costExplicitlySet: false
     };
 
-    await db.items.add(newItem);
+    await db.items.put(newItem);
     if (getSupabaseConfig().isConfigured) {
       await cloudAddItem(newItem);
     }
-    alert(`"${vnt.brand} - ${vnt.title}" imported into active inventory (needs cost price).`);
+    alert(`"${vnt.brand} - ${vnt.title}" importé dans le stock (coût d'achat à définir).`);
   };
 
   return (
