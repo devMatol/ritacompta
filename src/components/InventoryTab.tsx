@@ -2,7 +2,9 @@ import React, { useState, useMemo, useEffect, useRef } from 'react';
 import { Item, VintedItem } from '../types';
 import { smartMatch, isCostSet } from '../services/matching';
 import { formatEur } from '../services/format';
-import { Search, Package, MoreHorizontal, Check, Edit2, Trash2, ArrowUpDown } from 'lucide-react';
+import { resolveVintedUrl } from '../services/vintedUrl';
+import { PieceDetailModal } from './PieceDetailModal';
+import { Search, Package, MoreHorizontal, Check, Edit2, Trash2, ArrowUpDown, ExternalLink } from 'lucide-react';
 
 interface InventoryTabProps {
   items: Item[];
@@ -29,6 +31,7 @@ export const InventoryTab: React.FC<InventoryTabProps> = ({
   const [sortBy, setSortBy] = useState<SortOption>('newest');
   const [statusFilter, setStatusFilter] = useState<FilterStatus>('all');
   const [activeMenuId, setActiveMenuId] = useState<string | null>(null);
+  const [selectedItemForDetail, setSelectedItemForDetail] = useState<Item | null>(null);
 
   const menuRef = useRef<HTMLDivElement>(null);
 
@@ -280,10 +283,13 @@ export const InventoryTab: React.FC<InventoryTabProps> = ({
             return (
               <div
                 key={item.id}
-                className="card-glossy overflow-hidden flex flex-col justify-between group relative"
+                className="card-glossy overflow-hidden flex flex-col justify-between group relative transition-all hover:border-[rgba(255,190,220,0.22)]"
               >
-                {/* Photo 4:5 avec badges discrets sans texte flou */}
-                <div className="relative aspect-[4/5] bg-black/40 overflow-hidden">
+                {/* Photo 4:5 cliquable ouvrant la fiche Vinted */}
+                <div
+                  onClick={() => setSelectedItemForDetail(item)}
+                  className="relative aspect-[4/5] bg-black/40 overflow-hidden cursor-pointer"
+                >
                   {item.photo ? (
                     <img
                       src={item.photo}
@@ -325,11 +331,14 @@ export const InventoryTab: React.FC<InventoryTabProps> = ({
                   </div>
                 </div>
 
-                {/* Card Body */}
+                {/* Card Body cliquable ouvrant la fiche */}
                 <div className="p-3 sm:p-3.5 flex-1 flex flex-col justify-between">
-                  <div>
+                  <div
+                    onClick={() => setSelectedItemForDetail(item)}
+                    className="cursor-pointer"
+                  >
                     {/* Marque (600) */}
-                    <h2 className="text-xs sm:text-sm font-semibold text-primary truncate">
+                    <h2 className="text-xs sm:text-sm font-semibold text-primary truncate hover:text-accent-light transition-colors">
                       {item.brand}
                     </h2>
 
@@ -376,8 +385,39 @@ export const InventoryTab: React.FC<InventoryTabProps> = ({
                       {isMenuOpen && (
                         <div
                           ref={menuRef}
-                          className="absolute right-0 bottom-full mb-1 z-30 w-44 rounded-xl bg-[#17111A] border border-[rgba(255,190,220,0.14)] shadow-xl p-1 text-xs space-y-0.5 animate-fade-in"
+                          className="absolute right-0 bottom-full mb-1 z-30 w-48 rounded-xl bg-[#17111A] border border-[rgba(255,190,220,0.14)] shadow-xl p-1 text-xs space-y-0.5 animate-fade-in"
                         >
+                          <button
+                            onClick={() => {
+                              setActiveMenuId(null);
+                              setSelectedItemForDetail(item);
+                            }}
+                            className="w-full px-2.5 py-1.5 rounded-md flex items-center gap-2 text-left text-secondary hover:text-primary hover:bg-white/[0.06] transition-colors"
+                          >
+                            <Package size={13} className="text-accent-pale" />
+                            <span>Voir la fiche</span>
+                          </button>
+
+                          <a
+                            href={resolveVintedUrl(
+                              {
+                                url: match.vintedItem?.url,
+                                vintedId: item.vintedId || match.vintedItem?.id,
+                                id: item.id,
+                                brand: item.brand,
+                                title: item.title
+                              },
+                              vintedCatalog
+                            ).url}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            onClick={() => setActiveMenuId(null)}
+                            className="w-full px-2.5 py-1.5 rounded-md flex items-center gap-2 text-left text-accent-light hover:text-primary hover:bg-white/[0.06] transition-colors"
+                          >
+                            <ExternalLink size={13} />
+                            <span>Ouvrir sur Vinted</span>
+                          </a>
+
                           <button
                             onClick={() => handlePromptSetPrice(item)}
                             className="w-full px-2.5 py-1.5 rounded-md flex items-center gap-2 text-left text-secondary hover:text-primary hover:bg-white/[0.06] transition-colors"
@@ -407,6 +447,18 @@ export const InventoryTab: React.FC<InventoryTabProps> = ({
           })}
         </div>
       )}
+
+      {/* Modal Fiche Détaillée Style Vinted */}
+      <PieceDetailModal
+        isOpen={Boolean(selectedItemForDetail)}
+        onClose={() => setSelectedItemForDetail(null)}
+        item={selectedItemForDetail}
+        mode="stock"
+        vintedCatalog={vintedCatalog}
+        onOpenSaleModal={onOpenSaleModal}
+        onUpdateCost={onUpdatePurchasePrice}
+        onDeleteItem={onDeleteItem}
+      />
 
     </div>
   );

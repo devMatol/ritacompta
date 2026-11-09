@@ -2,6 +2,7 @@ import React, { useState, useMemo } from 'react';
 import { Item, Sale, VintedItem } from '../types';
 import { isSameVintedItem, isVintedItemImported } from '../services/matching';
 import { formatEur } from '../services/format';
+import { PieceDetailModal, PieceDetailMode } from './PieceDetailModal';
 import { ExternalLink, Search, RefreshCw, Plus, Package, Sparkles, AlertTriangle, Trash2, CheckCircle2 } from 'lucide-react';
 
 interface VintedReconciliationTabProps {
@@ -30,6 +31,8 @@ export const VintedReconciliationTab: React.FC<VintedReconciliationTabProps> = (
   const [isImporting, setIsImporting] = useState(false);
   const [syncMessage, setSyncMessage] = useState<string | null>(null);
   const [deletingId, setDeletingId] = useState<string | null>(null);
+  const [selectedDetailItem, setSelectedDetailItem] = useState<Item | VintedItem | null>(null);
+  const [detailMode, setDetailMode] = useState<PieceDetailMode>('vinted_missing');
 
   // 1. Stock items that are NO LONGER present on Vinted (SOLDS / MISSING on Vinted)
   const soldOrMissingOnVinted = useMemo(() => {
@@ -192,11 +195,17 @@ export const VintedReconciliationTab: React.FC<VintedReconciliationTabProps> = (
                   key={item.id}
                   className="p-3 sm:p-3.5 rounded-xl bg-white/[0.02] border border-[rgba(255,190,220,0.10)] hover:border-[rgba(255,190,220,0.20)] transition-all flex flex-col sm:flex-row sm:items-center justify-between gap-3"
                 >
-                  {/* Photo 64px + infos */}
-                  <div className="flex items-center gap-3 min-w-0">
-                    <div className="w-16 h-16 rounded-lg bg-black/40 overflow-hidden shrink-0 border border-white/10">
+                  {/* Photo 64px + infos cliquables vers la modale */}
+                  <div
+                    onClick={() => {
+                      setSelectedDetailItem(item);
+                      setDetailMode('vinted_missing');
+                    }}
+                    className="flex items-center gap-3 min-w-0 cursor-pointer flex-1 group"
+                  >
+                    <div className="w-16 h-16 rounded-lg bg-black/40 overflow-hidden shrink-0 border border-white/10 group-hover:border-[rgba(255,143,192,0.4)] transition-colors">
                       {item.photo ? (
-                        <img src={item.photo} alt={item.title} className="w-full h-full object-cover" />
+                        <img src={item.photo} alt={item.title} className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105" />
                       ) : (
                         <div className="w-full h-full flex items-center justify-center text-secondary">
                           <Package size={20} className="opacity-40" />
@@ -213,7 +222,7 @@ export const VintedReconciliationTab: React.FC<VintedReconciliationTabProps> = (
                           </span>
                         )}
                       </div>
-                      <h3 className="text-sm font-semibold text-primary truncate mt-0.5">
+                      <h3 className="text-sm font-semibold text-primary truncate mt-0.5 group-hover:text-accent-light transition-colors">
                         {item.brand}
                       </h3>
                       <p className="text-xs text-secondary truncate">
@@ -300,11 +309,17 @@ export const VintedReconciliationTab: React.FC<VintedReconciliationTabProps> = (
                 key={vnt.id}
                 className="p-3 sm:p-3.5 rounded-xl bg-white/[0.02] border border-[rgba(255,190,220,0.08)] hover:border-[rgba(255,190,220,0.16)] transition-all flex flex-col sm:flex-row sm:items-center justify-between gap-3"
               >
-                {/* Photo 64px + infos */}
-                <div className="flex items-center gap-3 min-w-0">
-                  <div className="w-16 h-16 rounded-lg bg-black/40 overflow-hidden shrink-0 border border-white/10">
+                {/* Photo 64px + infos cliquables vers la modale */}
+                <div
+                  onClick={() => {
+                    setSelectedDetailItem(vnt);
+                    setDetailMode('vinted_unimported');
+                  }}
+                  className="flex items-center gap-3 min-w-0 cursor-pointer flex-1 group"
+                >
+                  <div className="w-16 h-16 rounded-lg bg-black/40 overflow-hidden shrink-0 border border-white/10 group-hover:border-[rgba(255,143,192,0.4)] transition-colors">
                     {vnt.photo ? (
-                      <img src={vnt.photo} alt={vnt.title} className="w-full h-full object-cover" />
+                      <img src={vnt.photo} alt={vnt.title} className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105" />
                     ) : (
                       <div className="w-full h-full flex items-center justify-center text-secondary">
                         <Package size={20} className="opacity-40" />
@@ -314,7 +329,7 @@ export const VintedReconciliationTab: React.FC<VintedReconciliationTabProps> = (
 
                   <div className="min-w-0">
                     <div className="flex items-center gap-2">
-                      <span className="text-xs font-semibold text-primary">{vnt.brand}</span>
+                      <span className="text-xs font-semibold text-primary group-hover:text-accent-light transition-colors">{vnt.brand}</span>
                       {vnt.size && (
                         <span className="text-[10px] text-secondary px-1.5 py-0.2 rounded-sm bg-white/5">
                           {vnt.size}
@@ -335,15 +350,10 @@ export const VintedReconciliationTab: React.FC<VintedReconciliationTabProps> = (
                       {vnt.url && (
                         <>
                           <span>·</span>
-                          <a
-                            href={vnt.url}
-                            target="_blank"
-                            rel="noreferrer"
-                            className="text-accent-light hover:underline inline-flex items-center gap-0.5"
-                          >
-                            <span>Voir sur Vinted</span>
+                          <span className="text-accent-light inline-flex items-center gap-0.5">
+                            <span>Vinted</span>
                             <ExternalLink size={10} />
-                          </a>
+                          </span>
                         </>
                       )}
                     </div>
@@ -387,6 +397,18 @@ export const VintedReconciliationTab: React.FC<VintedReconciliationTabProps> = (
           </a>
         </div>
       )}
+
+      {/* Modal Fiche Détaillée Style Vinted */}
+      <PieceDetailModal
+        isOpen={Boolean(selectedDetailItem)}
+        onClose={() => setSelectedDetailItem(null)}
+        item={selectedDetailItem}
+        mode={detailMode}
+        vintedCatalog={vintedCatalog}
+        onOpenSaleModal={onOpenSaleModal}
+        onDeleteItem={onDeleteItem}
+        onImportVinted={onQuickAddVintedToCompta}
+      />
 
     </div>
   );

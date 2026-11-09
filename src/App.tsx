@@ -503,6 +503,8 @@ export const App: React.FC = () => {
           {activeTab === 'sales' && (
             <SalesTab
               sales={sales}
+              items={items}
+              vintedCatalog={vintedCatalog}
             />
           )}
           {activeTab === 'vinted' && (
